@@ -1,0 +1,16 @@
+[project]
+name = "codeplug-doc-gen"
+version = "0.1.0"
+dependencies = [
+  "svgwrite"
+]
+readme = "README.md"
+license = "LICENSE"
+
+[project.scripts]
+codeplug-doc-gen = "cpdgen:main_cli"
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
