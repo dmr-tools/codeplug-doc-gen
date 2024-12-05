@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<codeplug>
+    <meta>
+        <name>Example Codeplug</name>
+        <short-name>EC</short-name>
+        <description>Some description.</description>
+        <firmware>1.0.1</firmware>
+        <needs-review/>
+    </meta>
+
+    <repeat at="1000h" step="100h" min="1" max="128">
+        <meta>
+            <name>Channel Banks</name>
+            <description>A sequence of channel banks.</description>
+        </meta>
+
+        <repeat min="1" max="16">
+            <meta>
+                <name>Channel Bank</name>
+                <description>A single channel bank, holding up to 16 channels.</description>
+            </meta>
+
+            <element>
+                <meta>
+                    <name>Channel Element</name>
+                    <description>Encodes a single channel.</description>
+                </meta>
+
+                <string format="ascii" width="8">
+                    <meta>
+                        <name>Channel name</name>
+                    </meta>
+                </string>
+                <int width="32" format="bcd" endian="little">
+                    <meta>
+                        <name>RX Frequency</name>
+                    </meta>
+                </int>
+                <int width="32" format="bcd" endian="little">
+                    <meta>
+                        <name>TX Frequency</name>
+                    </meta>
+                </int>
+            </element>
+        </repeat>
+    </repeat>
+</codeplug>

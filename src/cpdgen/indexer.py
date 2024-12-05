@@ -1,8 +1,8 @@
-from document import Document, Section, Paragraph, Table, Figure
+from cpdgen.document import Document, Section, Paragraph, Table, Figure
 
 class Indexer:
     @staticmethod
-    def process(self, obj, counts={'sections': [0], 'paragraphs': [0], 'tables':[0], 'figures': [0]}):
+    def process(obj, counts={'sections': [0], 'paragraphs': [0], 'tables':[0], 'figures': [0]}):
         if isinstance(obj, Document):
             for section in obj:
                 Indexer.process(section)

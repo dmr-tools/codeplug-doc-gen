@@ -14,3 +14,8 @@ codeplug-doc-gen = "cpdgen:main_cli"
 requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.coverage.run]
+branch = true
+include = ["cpdgen/*"]
+command_line = "-m unittest discover -s tests/"
+source = ["src"]
