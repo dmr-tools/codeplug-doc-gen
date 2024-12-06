@@ -7,6 +7,7 @@ from cpdgen.documentgenerator import DocumentGenerator
 from argparse import ArgumentParser
 from cpdgen.htmlgenerator import HTMLGenerator
 from cpdgen.indexer import Indexer
+from xml.etree import ElementTree
 
 
 def main_cli():
@@ -31,13 +32,15 @@ def main_cli():
 
     htmlgen = HTMLGenerator()
     htmlgen.process_document(document)
-    htmldoc: xml.dom.minidom.Document = htmlgen.get_document()
+    htmldoc = htmlgen.get_document()
 
     file = sys.stdout
+    encoding = "unicode"
     if "output" in args and args.output is not None:
-        file = open(args.output, "w")
+        file = open(args.output, "wb")
+        encoding = "UTF-8"
 
-    file.write(htmldoc.toprettyxml())
+    htmldoc.write(file, encoding=encoding, method="html")
     file.flush()
     file.close()
 

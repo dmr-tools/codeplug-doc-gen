@@ -1,34 +1,31 @@
 import html
-from xml.dom import minidom
+from xml.etree import ElementTree
 from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan
 
 
 class HTMLGenerator:
     def __init__(self):
-        self._document = minidom.Document()
-        self._html = self._document.createElement("html")
-        self._document.appendChild(self._html)
-        self._head = self._document.createElement("head")
-        self._html.appendChild(self._head)
-        self._body = self._document.createElement("body")
-        self._html.appendChild(self._body)
-        self._stack: [minidom.Element] = []
+        self._builder = ElementTree.TreeBuilder()
+        self._html = self._builder.start("html", {})
+        self._head = self._builder.start("head", {})
+        self._builder.end("head")
+        self._body = self._builder.start("body", {})
+        self._current = None
 
-    def get_document(self):
-        return self._document
+    def get_document(self) -> ElementTree.ElementTree:
+        return ElementTree.ElementTree(self._html)
 
     def text(self, txt):
-        tn = self._document.createTextNode(html.escape(txt))
-        self._stack[-1].appendChild(tn)
+        self._builder.data(txt)
 
     def push(self, tag, attrs={}):
-        el: minidom.Element = self._document.createElement(tag)
-        for k,v in attrs.items(): el.setAttribute(k, v)
-        self._stack[-1].appendChild(el)
-        self._stack.append(el)
+        self._current = self._builder.start(tag, attrs)
+
+    def back(self):
+        return self._current
 
     def pop(self):
-        return self._stack.pop()
+        return self._builder.end(self._current.tag)
 
     def process(self, el):
         if isinstance(el, Document):
@@ -46,13 +43,12 @@ class HTMLGenerator:
 
     def process_document(self, doc: Document):
         if doc.has_title():
-            te = self._document.createElement("title")
-            self._head.appendChild(te)
-            te.appendChild(self._document.createTextNode(doc.get_title()))
-        self._stack.append(self._body)
+            te = ElementTree.Element("title")
+            self._head.append(te)
+            te.text += doc.get_title()
+        self._current = self._body
         for el in doc:
             self.process(el)
-        self._stack.pop()
 
     def process_section(self, sec: Section):
         level: int = sec.get_level()
@@ -94,7 +90,9 @@ class HTMLGenerator:
         self.pop()
 
     def process_figure(self, fig: Figure):
-        pass
+        self.push("img")
+        self.back().append(fig.get_svg())
+        self.pop()
 
     def process_span(self, span: TextSpan):
         self.text(span.get_content())

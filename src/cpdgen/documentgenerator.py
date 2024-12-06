@@ -1,6 +1,8 @@
 from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
     FieldPattern, StringPattern, EnumPattern, EnumValue, IntegerPattern, UnusedDataPattern, UnknownDataPattern
+from cpdgen.elementmap import ElementMap
+from svgwrite import Drawing
 
 
 class DocumentGenerator:
@@ -89,7 +91,10 @@ class DocumentGenerator:
             para = Paragraph()
             para.add(element.meta().get_description())
             self.back().add(para)
-        overview = Figure("Element Structure")
+        drawing = Drawing()
+        mapper = ElementMap(drawing)
+        mapper.process(element)
+        overview = Figure("Element Structure", drawing)
         self.back().add(overview)
         for child in element:
             self.processPattern(child)
@@ -135,7 +140,7 @@ class DocumentGenerator:
         self.back().add(para)
         para.add("{}-bit {} {}-endian integer value ({})."
                  .format(integer.get_size().bits(),
-                         {IntegerPattern.SIGNED:"signed", IntegerPattern.UNSIGNED: "unsigned",
+                         {IntegerPattern.SIGNED: "signed", IntegerPattern.UNSIGNED: "unsigned",
                           IntegerPattern.BCD: "bcd"}[integer.get_format()],
                          {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
                          integer.get_format_string()))

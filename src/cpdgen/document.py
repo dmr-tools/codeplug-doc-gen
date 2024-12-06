@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-
+from svgwrite import Drawing
+import xml.etree as ET
 
 class DocumentSegment(ABC):
     def __init__(self, title, parent=None):
@@ -153,8 +154,15 @@ class Table(DocumentSegment):
 
 
 class Figure(DocumentSegment):
+    def __init__(self, title, image: Drawing, parent=None):
+        super(Figure, self).__init__(title, parent)
+        self._image = image
+
     def get_segment_type(self):
         return "Figure"
+
+    def get_svg(self):
+        return self._image.get_xml()
 
 
 class TextSpan:
