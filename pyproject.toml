@@ -5,10 +5,10 @@ dependencies = [
   "svgwrite"
 ]
 readme = "README.md"
-license = "LICENSE"
+license = {file = "LICENSE"}
 
 [project.scripts]
-codeplug-doc-gen = "cpdgen:main_cli"
+codeplug-doc-gen = "cpdgen.cli:main_cli"
 
 [build-system]
 requires = ["setuptools >= 61.0"]
