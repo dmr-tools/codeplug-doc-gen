@@ -91,10 +91,9 @@ class DocumentGenerator:
             para = Paragraph()
             para.add(element.meta().get_description())
             self.back().add(para)
-        drawing = Drawing()
-        mapper = ElementMap(drawing)
+        mapper = ElementMap()
         mapper.process(element)
-        overview = Figure("Element Structure", drawing)
+        overview = Figure("Element Structure", mapper.document())
         self.back().add(overview)
         for child in element:
             self.processPattern(child)
@@ -124,10 +123,10 @@ class DocumentGenerator:
         if len(enum):
             options = Table("Possible values")
             self.back().add(options)
-            options.set_header("Name", "Value", "Description")
+            options.set_header("Value", "Name", "Description")
             for item in enum:
                 options.add_row(
-                    item.meta.get_name(), str(item.value), item.meta.get_description()
+                    str(item.value), item.get_name(), item.get_description()
                 )
         if enum.meta().has_description():
             para = Paragraph()

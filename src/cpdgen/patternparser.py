@@ -133,22 +133,22 @@ class PatternHandler(ContentHandler):
             pattern = SparseRepeat(step, at, None, min, max)
         else:
             pattern = BlockRepeat(at, None, min, max)
-
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endRepeatElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
+
 
     def startElementElement(self, attrs):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
         at = Address.parse(attrs["at"]) if "at" in attrs else None
         pattern = ElementPattern(at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endElementElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startIntElement(self, attrs):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
@@ -164,11 +164,11 @@ class PatternHandler(ContentHandler):
         max = int(attrs["max"]) if "max" in attrs else None
         default = int(attrs["default"]) if "default" in attrs else None
         pattern = IntegerPattern(width, format, endian, min, max, default, at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endIntElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startStringElement(self, attrs:dict):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
@@ -179,51 +179,51 @@ class PatternHandler(ContentHandler):
             attrs["format"] if "format" in attrs else "ascii"
         ]
         pattern = StringPattern(width, format, pad, at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endStringElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startEnumElement(self, attrs: dict):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
         at = Address.parse(attrs["at"]) if "at" in attrs else None
         width = Size.parse(attrs["width"]) if "width" in attrs else None
         pattern = EnumPattern(width, None, at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endEnumElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startItemElement(self, attrs):
         assert isinstance(self._stack[-1], EnumPattern)
         value = int(attrs["value"]) if "value" in attrs else None
         pattern = EnumValue(value)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endItemElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startUnusedElement(self, attrs):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
         at = Address.parse(attrs["at"]) if "at" in attrs else None
         width = Size.parse(attrs["width"]) if "width" in attrs else None
         pattern = UnusedDataPattern(b"", width, at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endUnusedElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
 
     def startUnknownElement(self, attrs):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
         at = Address.parse(attrs["at"]) if "at" in attrs else None
         width = Size.parse(attrs["width"]) if "width" in attrs else None
         pattern = UnknownDataPattern(width, at)
-        self._stack[-1].add(pattern)
         self._stack.append(pattern)
 
     def endUnknownElement(self):
-        self._stack.pop()
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)

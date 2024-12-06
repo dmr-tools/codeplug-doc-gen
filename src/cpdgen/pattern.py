@@ -4,8 +4,8 @@ from re import fullmatch
 
 
 class Address:
-    def __init__(self, byte:int=None, bit:int=7):
-        if None == byte:
+    def __init__(self, byte: int = None, bit: int = 7):
+        if byte is None:
             self._bits = None
         else:
             self._bits = byte*8 + 8*(bit//8) + (7-bit%8);
@@ -13,20 +13,22 @@ class Address:
     def __str__(self):
         if 0 == self._bits % 8:
             return "{:x}h".format(self._bits//8)
-        return "{:x}h:{}".format(self._bits//8, 7-self._bits%8)
+        return "{:x}h:{}".format(self._bits//8, 7 - self._bits % 8)
 
     def __add__(self, other):
-        return Address(0, self._bits + other._bits)
+        bits = self._bits + other.bits()
+        byte, bit = bits//8, 7 - bits % 8
+        return Address(byte, bit)
 
     def __iadd__(self, other):
-        self._bits += other._bits
+        self._bits += other.bits()
         return self
 
     def __le__(self, other):
-        return self._bits <= other._bits
+        return self._bits <= other.bits()
 
     def __eq__(self, other):
-        return self._bits == other._bits
+        return self._bits == other.bits()
 
     @staticmethod
     def parse(string):
@@ -262,7 +264,7 @@ class ElementPattern(FixedPattern, StructuredPatternInterface):
     def __iter__(self):
         return iter(self._children)
 
-    def add(self, child:FixedPattern):
+    def add(self, child: FixedPattern):
         if not isinstance(child, FixedPattern):
             raise TypeError("Cannot add a variable-sized pattern to a fixed one.")
         offset = Address(0)
@@ -279,14 +281,9 @@ class FieldPattern(FixedPattern):
 
 
 class EnumValue(MetaInformation):
-    def __init__(self, value:int):
+    def __init__(self, value: int):
         super().__init__()
         self._value = int(value)
-        self._meta = MetaInformation()
-
-    @property
-    def meta(self):
-        return self._meta
 
     @property
     def value(self):

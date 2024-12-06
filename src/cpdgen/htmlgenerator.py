@@ -61,15 +61,17 @@ class HTMLGenerator:
             self.process(seg)
 
     def process_paragraph(self, par: Paragraph, encapsulate: bool = True):
-        if encapsulate: self.push("p")
         if par.has_title():
-            self.push("b")
+            self.push("h5")
             self.process_paragraph(par.get_title(), False)
             self.text(":")
             self.pop()
+        if encapsulate:
+            self.push("p")
         for seg in par:
             self.process_span(seg)
-        if encapsulate: self.pop()
+        if encapsulate:
+            self.pop()
 
     def process_table(self, tab: Table):
         self.push("table")

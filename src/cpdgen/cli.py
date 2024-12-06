@@ -1,5 +1,4 @@
 import sys
-import xml.dom.minidom
 
 from cpdgen.patternparser import PatternHandler
 from xml.sax import parse
@@ -7,8 +6,8 @@ from cpdgen.documentgenerator import DocumentGenerator
 from argparse import ArgumentParser
 from cpdgen.htmlgenerator import HTMLGenerator
 from cpdgen.indexer import Indexer
-from xml.etree import ElementTree
 
+from os import getcwd
 
 def main_cli():
     parser = ArgumentParser(
@@ -20,6 +19,7 @@ def main_cli():
     parser.add_argument("output", nargs="?")
     args = parser.parse_args()
 
+    print("Read pattern from {} in {}...".format(args.pattern, getcwd()))
     pattern_handler = PatternHandler()
     parse(open(args.pattern, "r"), pattern_handler)
     cp = pattern_handler.pop()
