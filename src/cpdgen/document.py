@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from svgwrite import Drawing
+from datetime import date
 import xml.etree as ET
 
 class DocumentSegment(ABC):
@@ -80,7 +81,12 @@ class Section(DocumentSegment):
             return 1
         return 1 + self.get_parent().get_level();
 
-
+    def get_title(self):
+        title = super(Section, self).get_title()
+        if title is None:
+            title = Paragraph()
+            title.add("Unnamed section")
+        return title
 class Paragraph(DocumentSegment):
     def __init__(self, title=None, parent=None):
         super().__init__(title, parent)
@@ -193,10 +199,10 @@ class Reference(TextSpan):
 
 
 class Document:
-    def __init__(self):
+    def __init__(self, title=None, sub_title=None, published: date = date.today()):
         self._title = None
         self._sub_title = None
-
+        self._published = published
         self._content: [Section] = []
 
     def __len__(self):
@@ -214,11 +220,20 @@ class Document:
     def get_title(self) -> str|None:
         return self._title
 
+    def set_title(self, title: str):
+        self._title = title
+
     def has_subtitle(self) -> bool:
         return bool(self._subtitle)
 
     def get_subtitle(self) -> str|None:
         return self._sub_title
+
+    def set_subtitle(self, subtitle: str):
+        self._sub_title = subtitle
+
+    def get_published(self) -> date:
+        return self._published
 
     def add(self, section: Section):
         section.set_parent(self)

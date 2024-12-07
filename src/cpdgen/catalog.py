@@ -54,7 +54,7 @@ class Model:
         return self._versions[item]
 
     def __iter__(self):
-        return iter(self._versions.items())
+        return iter(self._versions)
 
     def is_valid(self) -> bool:
         return bool(self._name)
@@ -64,6 +64,9 @@ class Model:
 
     def set_name(self, name: str):
         self._name = name
+
+    def has_description(self) -> bool:
+        return bool(self._description)
 
     def get_description(self) -> str:
         return self._description

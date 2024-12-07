@@ -2,13 +2,14 @@ from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
     FieldPattern, StringPattern, EnumPattern, EnumValue, IntegerPattern, UnusedDataPattern, UnknownDataPattern
 from cpdgen.elementmap import ElementMap
+from cpdgen.catalog import Catalog, Model, Firmware
 from svgwrite import Drawing
 
 
 class DocumentGenerator:
     def __init__(self):
         self._document = Document()
-        self._stack : [DocumentSegment] = []
+        self._stack: [DocumentSegment] = []
 
     def push(self, segment: DocumentSegment):
         self.back().add(segment)
@@ -24,6 +25,23 @@ class DocumentGenerator:
 
     def document(self):
         return self._document
+
+    def processCatalog(self, catalog: Catalog):
+        assert isinstance(catalog, Catalog)
+        self._document.set_title("Codeplug documentation")
+        for model in catalog:
+            self.processModel(model)
+
+    def processModel(self, model: Model):
+        assert isinstance(model, Model)
+        self.push(Section("Code-plugs of {}".format(model.get_name())))
+        if model.has_description():
+            para = Paragraph()
+            para.add(model.get_description())
+        for firmware in model:
+            if firmware.is_valid():
+                self.processCodeplug(firmware.get_codeplug())
+        self.pop()
 
     def processPattern(self, pattern: AbstractPattern):
         if isinstance(pattern, Codeplug):

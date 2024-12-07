@@ -25,10 +25,10 @@ def main_cli():
     catalog_handler = CatalogHandler(base_path)
     info("Read catalog from {} ...".format(abs_path))
     parse(open(abs_path, "r"), catalog_handler)
-    cp = catalog_handler.pop()
+    cat = catalog_handler.pop()
 
     docgen = DocumentGenerator()
-    docgen.processCodeplug(cp)
+    docgen.processCatalog(cat)
     document = docgen.document()
 
     Indexer.process(document)

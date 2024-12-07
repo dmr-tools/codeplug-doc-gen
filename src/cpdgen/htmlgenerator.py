@@ -45,7 +45,7 @@ class HTMLGenerator:
         if doc.has_title():
             te = ElementTree.Element("title")
             self._head.append(te)
-            te.text += doc.get_title()
+            te.text = te.text + doc.get_title() if te.text else doc.get_title()
         self._current = self._body
         for el in doc:
             self.process(el)
