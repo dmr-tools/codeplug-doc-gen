@@ -1,13 +1,14 @@
+import os.path
 import sys
 
-from cpdgen.patternparser import PatternHandler
+from cpdgen.catalogparser import CatalogHandler
 from xml.sax import parse
 from cpdgen.documentgenerator import DocumentGenerator
 from argparse import ArgumentParser
 from cpdgen.htmlgenerator import HTMLGenerator
 from cpdgen.indexer import Indexer
+from logging import info
 
-from os import getcwd
 
 def main_cli():
     parser = ArgumentParser(
@@ -15,14 +16,16 @@ def main_cli():
         description="Generates a complete documentation from codeplug definition files."
     )
     parser.add_argument("-f", "--format", default="html", choices=["html"])
-    parser.add_argument("pattern")
+    parser.add_argument("catalog")
     parser.add_argument("output", nargs="?")
     args = parser.parse_args()
 
-    print("Read pattern from {} in {}...".format(args.pattern, getcwd()))
-    pattern_handler = PatternHandler()
-    parse(open(args.pattern, "r"), pattern_handler)
-    cp = pattern_handler.pop()
+    abs_path = os.path.abspath(args.catalog)
+    base_path = os.path.dirname(abs_path)
+    catalog_handler = CatalogHandler(base_path)
+    info("Read catalog from {} ...".format(abs_path))
+    parse(open(abs_path, "r"), catalog_handler)
+    cp = catalog_handler.pop()
 
     docgen = DocumentGenerator()
     docgen.processCodeplug(cp)
