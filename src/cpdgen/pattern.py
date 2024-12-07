@@ -1,4 +1,3 @@
-import re
 from abc import ABC, abstractmethod
 from re import fullmatch
 

@@ -1,9 +1,8 @@
-from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure
+from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
-    FieldPattern, StringPattern, EnumPattern, EnumValue, IntegerPattern, UnusedDataPattern, UnknownDataPattern
+    FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern
 from cpdgen.elementmap import ElementMap
-from cpdgen.catalog import Catalog, Model, Firmware
-from svgwrite import Drawing
+from cpdgen.catalog import Catalog, Model
 
 
 class DocumentGenerator:
@@ -29,6 +28,7 @@ class DocumentGenerator:
     def processCatalog(self, catalog: Catalog):
         assert isinstance(catalog, Catalog)
         self._document.set_title("Codeplug documentation")
+        self._document.add(TableOfContents(self._document))
         for model in catalog:
             self.processModel(model)
 
@@ -43,33 +43,31 @@ class DocumentGenerator:
                 self.processCodeplug(firmware.get_codeplug())
         self.pop()
 
-    def processPattern(self, pattern: AbstractPattern):
+    def processPattern(self, pattern: AbstractPattern) -> Section | Paragraph:
         if isinstance(pattern, Codeplug):
-            self.processCodeplug(pattern)
-        elif isinstance(pattern, (SparseRepeat, BlockRepeat, FixedRepeat)):
-            self.processRepeat(pattern)
-        elif isinstance(pattern, ElementPattern):
-            self.processElement(pattern)
-        elif isinstance(pattern, FieldPattern):
-            self.processFieldPattern(pattern)
-        else:
-            raise TypeError("Unhandled pattern type '{}'.".format(type(pattern)))
+            return self.processCodeplug(pattern)
+        if isinstance(pattern, (SparseRepeat, BlockRepeat, FixedRepeat)):
+            return self.processRepeat(pattern)
+        if isinstance(pattern, ElementPattern):
+            return self.processElement(pattern)
+        if isinstance(pattern, FieldPattern):
+            return self.processFieldPattern(pattern)
+        raise TypeError("Unhandled pattern type '{}'.".format(type(pattern)))
 
-    def processFieldPattern(self, pattern):
+    def processFieldPattern(self, pattern) -> Paragraph:
         if isinstance(pattern, StringPattern):
-            self.processStringPattern(pattern)
-        elif isinstance(pattern, EnumPattern):
-            self.processEnumPattern(pattern)
-        elif isinstance(pattern, IntegerPattern):
-            self.processIntegerPattern(pattern)
-        elif isinstance(pattern, UnusedDataPattern):
-            self.processUnusedDataPattern(pattern)
-        elif isinstance(pattern, UnknownDataPattern):
-            self.processUnknownDataPattern(pattern)
-        else:
-            raise TypeError("Unhandled field pattern type '{}'.".format(type(pattern)))
+            return self.processStringPattern(pattern)
+        if isinstance(pattern, EnumPattern):
+            return self.processEnumPattern(pattern)
+        if isinstance(pattern, IntegerPattern):
+            return self.processIntegerPattern(pattern)
+        if isinstance(pattern, UnusedDataPattern):
+            return self.processUnusedDataPattern(pattern)
+        if isinstance(pattern, UnknownDataPattern):
+            return self.processUnknownDataPattern(pattern)
+        raise TypeError("Unhandled field pattern type '{}'.".format(type(pattern)))
 
-    def processCodeplug(self, cp: Codeplug):
+    def processCodeplug(self, cp: Codeplug) -> Section:
         self.push(Section("Codeplug {}".format(cp.meta().get_name())))
         if cp.meta().has_description():
             desc = Paragraph()
@@ -79,12 +77,13 @@ class DocumentGenerator:
         self.back().add(table)
         table.set_header("Address", "Element", "Description")
         for el in cp:
-            table.add_row(str(el.get_address()), el.meta().get_name(),
-                          el.meta().get_description() if el.meta().has_description() else "")
-            self.processPattern(el)
-        self.pop()
+            el_sec = self.processPattern(el)
+            table.add_row(str(el.get_address()), Reference(el_sec, el.meta().get_name()),
+                          el.meta().get_brief() if el.meta().has_brief() else "")
 
-    def processRepeat(self, repeat: SparseRepeat|BlockRepeat|FixedRepeat):
+        return self.pop()
+
+    def processRepeat(self, repeat: SparseRepeat|BlockRepeat|FixedRepeat) -> Section:
         self.push(Section(repeat.meta().get_name()))
         if isinstance(repeat, SparseRepeat|BlockRepeat):
             para = Paragraph()
@@ -100,8 +99,9 @@ class DocumentGenerator:
             para = Paragraph()
             para.add(repeat.meta().get_description())
             self.back().add(para)
-        self.pop()
+        sec = self.pop()
         self.processPattern(repeat.get_child())
+        return sec
 
     def processElement(self, element: ElementPattern):
         self.push(Section(element.meta().get_name()))
@@ -115,7 +115,7 @@ class DocumentGenerator:
         self.back().add(overview)
         for child in element:
             self.processPattern(child)
-        self.pop()
+        return self.pop()
 
     def processStringPattern(self, string: StringPattern):
         para = Paragraph(string.meta().get_name() if not string.meta().has_short_name() else
@@ -128,9 +128,10 @@ class DocumentGenerator:
             para.add("Unicode string of length (up to) {} (size {}b), {:02X}-padded."
                      .format(string.get_chars(), string.get_size().bytes(), string.get_fill()))
         if string.meta().has_description():
-            para = Paragraph()
-            self.back().add(para)
-            para.add(string.meta().get_description())
+            tmp = Paragraph()
+            self.back().add(tmp)
+            tmp.add(string.meta().get_description())
+        return para
 
     def processEnumPattern(self, enum: EnumPattern):
         para = Paragraph(enum.meta().get_name() if not enum.meta().has_short_name() else
@@ -147,9 +148,10 @@ class DocumentGenerator:
                     str(item.value), item.get_name(), item.get_description()
                 )
         if enum.meta().has_description():
-            para = Paragraph()
-            self.back().add(para)
-            para.add(enum.meta().get_description())
+            tmp = Paragraph()
+            self.back().add(tmp)
+            tmp.add(enum.meta().get_description())
+        return para
 
     def processIntegerPattern(self, integer: IntegerPattern):
         para = Paragraph(integer.meta().get_name() if not integer.meta().has_short_name() else
@@ -162,9 +164,10 @@ class DocumentGenerator:
                          {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
                          integer.get_format_string()))
         if integer.meta().has_description():
-            para = Paragraph()
-            self.back().add(para)
-            para.add(integer.meta().get_description())
+            tmp = Paragraph()
+            self.back().add(tmp)
+            tmp.add(integer.meta().get_description())
+        return para
 
     def processUnusedDataPattern(self, unused: UnusedDataPattern):
         para = Paragraph(unused.meta().get_name() if not unused.meta().has_short_name() else
@@ -172,6 +175,7 @@ class DocumentGenerator:
         self.back().add(para)
         para.add("Unused data of size {}: {}"
                  .format(unused.get_size(), unused.get_content().hex(" ")))
+        return para
 
     def processUnknownDataPattern(self, unknown: UnknownDataPattern):
         para = Paragraph(unknown.meta().get_name() if not unknown.meta().has_short_name() else
@@ -179,3 +183,4 @@ class DocumentGenerator:
         self.back().add(para)
         para.add("Unknown data of size {}."
                  .format(unknown.get_size()))
+        return para

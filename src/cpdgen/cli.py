@@ -32,6 +32,7 @@ def main_cli():
     document = docgen.document()
 
     Indexer.process(document)
+    document.update()
 
     htmlgen = HTMLGenerator()
     htmlgen.process_document(document)

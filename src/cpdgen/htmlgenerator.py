@@ -1,6 +1,5 @@
-import html
 from xml.etree import ElementTree
-from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan
+from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan, Reference, TableOfContents, TOCItem
 
 
 class HTMLGenerator:
@@ -38,6 +37,8 @@ class HTMLGenerator:
             self.process_table(el)
         elif isinstance(el, Figure):
             self.process_figure(el)
+        elif isinstance(el, TableOfContents):
+            self.process_toc(el)
         else:
             raise TypeError("Unknown document section type '{}'".format(type(el)))
 
@@ -53,7 +54,7 @@ class HTMLGenerator:
     def process_section(self, sec: Section):
         level: int = sec.get_level()
         number: str = sec.get_segment_numbering()
-        self.push("h{}".format(level))
+        self.push("h{}".format(level), attrs={"id": sec.get_segment_id()})
         self.text(number + " ")
         self.process_paragraph(sec.get_title(), False)
         self.pop()
@@ -67,14 +68,14 @@ class HTMLGenerator:
             self.text(":")
             self.pop()
         if encapsulate:
-            self.push("p")
+            self.push("p", attrs={"id": par.get_segment_id()})
         for seg in par:
             self.process_span(seg)
         if encapsulate:
             self.pop()
 
     def process_table(self, tab: Table):
-        self.push("table")
+        self.push("table", attrs={"id": tab.get_segment_id()})
         if tab.has_header():
             self.push("tr")
             for head in tab.get_header():
@@ -92,9 +93,32 @@ class HTMLGenerator:
         self.pop()
 
     def process_figure(self, fig: Figure):
-        self.push("img")
+        self.push("img", attrs={"id": fig.get_segment_id()})
         self.back().append(fig.get_svg())
         self.pop()
 
+    def process_toc(self, toc: TableOfContents):
+        self.push("h5")
+        self.process_paragraph(toc.get_title(), False)
+        self.pop()
+        self.push("ol")
+        for item in toc:
+            self.process_toc_item(item)
+        self.pop()
+
+    def process_toc_item(self, item: TOCItem):
+        self.push("li")
+        self.process_span(item)
+        if len(item):
+            self.push("ol")
+            for subitem in item:
+                self.process_toc_item(subitem)
+            self.pop()
+        self.pop()
+
     def process_span(self, span: TextSpan):
+        if isinstance(span, Reference):
+            self.push("a", attrs={"href": "#"+span.get_segment().get_segment_id()})
         self.text(span.get_content())
+        if isinstance(span, Reference):
+            self.pop()

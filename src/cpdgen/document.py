@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from svgwrite import Drawing
 from datetime import date
-import xml.etree as ET
+
 
 class DocumentSegment(ABC):
     def __init__(self, title, parent=None):
@@ -15,6 +15,10 @@ class DocumentSegment(ABC):
         elif isinstance(title, TextSpan):
             self._title = Paragraph().add(title)
         self._number = None
+        self._id = None
+
+    def update(self):
+        pass
 
     @abstractmethod
     def get_segment_type(self):
@@ -31,6 +35,12 @@ class DocumentSegment(ABC):
             head.append(self._parent.get_segment_numbering())
         head.append(self.get_segment_number())
         return ".".join(head)
+
+    def set_segment_id(self, id):
+        self._id = id
+
+    def get_segment_id(self):
+        return self._id
 
     def get_parent(self):
         return self._parent
@@ -52,7 +62,6 @@ class DocumentSegment(ABC):
         return self._title
 
 
-
 class Section(DocumentSegment):
     def __init__(self, title, parent=None):
         super().__init__(title, parent)
@@ -69,6 +78,10 @@ class Section(DocumentSegment):
 
     def get_segment_type(self):
         return "Section"
+
+    def update(self):
+        for sub in self:
+            sub.update()
 
     def add(self, segment: DocumentSegment):
         if not isinstance(segment, DocumentSegment):
@@ -87,6 +100,8 @@ class Section(DocumentSegment):
             title = Paragraph()
             title.add("Unnamed section")
         return title
+
+
 class Paragraph(DocumentSegment):
     def __init__(self, title=None, parent=None):
         super().__init__(title, parent)
@@ -188,7 +203,7 @@ class TextSpan:
 
 
 class Reference(TextSpan):
-    def __init__(self, segment, content=""):
+    def __init__(self, segment: DocumentSegment, content: str = ""):
         super().__init__(content)
         self._segment = segment
 
@@ -197,13 +212,61 @@ class Reference(TextSpan):
             return super().get_content()
         return self._segment.get_title()
 
+    def get_segment(self) -> DocumentSegment:
+        return self._segment
+
+class TOCItem(Reference):
+    def __init__(self, section: Section):
+        text = "{} {}".format(section.get_segment_numbering(), section.get_title())
+        super(TOCItem, self).__init__(section, text)
+        self._subsections = []
+        for element in section:
+            if not isinstance(element, Section):
+                continue
+            self._subsections.append(TOCItem(element))
+
+    def __len__(self):
+        return len(self._subsections)
+
+    def __getitem__(self, item):
+        return self._subsections[item]
+
+    def __iter__(self):
+        return iter(self._subsections)
+
+
+class TableOfContents(DocumentSegment):
+    def __init__(self, section_or_document, title="Table of Contents", parent=None):
+        super(TableOfContents, self).__init__(title, parent)
+        self._subsections = []
+        self._source = section_or_document
+
+    def get_segment_type(self):
+        return "TOC"
+
+    def update(self):
+        self._subsections = []
+        for element in self._source:
+            if not isinstance(element, Section):
+                continue
+            self._subsections.append(TOCItem(element))
+
+    def __len__(self):
+        return len(self._subsections)
+
+    def __getitem__(self, item):
+        return self._subsections[item]
+
+    def __iter__(self):
+        return iter(self._subsections)
+
 
 class Document:
     def __init__(self, title=None, sub_title=None, published: date = date.today()):
         self._title = None
         self._sub_title = None
         self._published = published
-        self._content: [Section] = []
+        self._content: [DocumentSegment] = []
 
     def __len__(self):
         return len(self._content)
@@ -224,7 +287,7 @@ class Document:
         self._title = title
 
     def has_subtitle(self) -> bool:
-        return bool(self._subtitle)
+        return bool(self._sub_title)
 
     def get_subtitle(self) -> str|None:
         return self._sub_title
@@ -238,3 +301,7 @@ class Document:
     def add(self, section: Section):
         section.set_parent(self)
         self._content.append(section)
+
+    def update(self):
+        for section in self._content:
+            section.update()
