@@ -7,12 +7,13 @@ from xml.sax.handler import ContentHandler
 class PatternHandler(ContentHandler):
     META_NAME = 1
     META_SHORT_NAME = 2
-    META_DESCRIPTION = 3
-    META_VERSION = 4
+    META_BRIEF = 3
+    META_DESCRIPTION = 4
+    META_VERSION = 5
 
     @staticmethod
     def normalizeName(name: str):
-        return name.title().replace("-","").replace("_","")
+        return name.title().replace("-", "").replace("_", "")
 
     def __init__(self):
         super().__init__()
@@ -51,6 +52,9 @@ class PatternHandler(ContentHandler):
         elif PatternHandler.META_SHORT_NAME == self._state:
             assert isinstance(self._stack[-1], MetaInformation)
             self._stack[-1].set_short_name(content.strip())
+        elif PatternHandler.META_BRIEF == self._state:
+            assert isinstance(self._stack[-1], MetaInformation)
+            self._stack[-1].set_brief_description(content.strip())
         elif PatternHandler.META_DESCRIPTION == self._state:
             assert isinstance(self._stack[-1], MetaInformation)
             self._stack[-1].set_description(content.strip())
@@ -84,6 +88,13 @@ class PatternHandler(ContentHandler):
         self._state = PatternHandler.META_SHORT_NAME
 
     def endShortNameElement(self):
+        self._state = None
+
+    def startBriefElement(self, attrs):
+        assert isinstance(self._stack[-1], MetaInformation)
+        self._state = PatternHandler.META_BRIEF
+
+    def endBriefElement(self):
         self._state = None
 
     def startDescriptionElement(self, attrs):

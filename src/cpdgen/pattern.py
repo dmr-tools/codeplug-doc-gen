@@ -91,6 +91,7 @@ class MetaInformation:
     def __init__(self):
         self._name = None
         self._short_name = None
+        self._brief = None
         self._description = None
         self._firmware_version = None
         self._flags = 0
@@ -109,6 +110,15 @@ class MetaInformation:
 
     def set_short_name(self, name):
         self._short_name = str(name)
+
+    def has_brief(self) -> bool:
+        return bool(self._brief)
+
+    def get_brief(self):
+        return self._brief
+
+    def set_brief(self, description):
+        self._brief = str(description)
 
     def has_description(self) -> bool:
         return bool(self._description)
