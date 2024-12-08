@@ -54,7 +54,7 @@ class PatternHandler(ContentHandler):
             self._stack[-1].set_short_name(content.strip())
         elif PatternHandler.META_BRIEF == self._state:
             assert isinstance(self._stack[-1], MetaInformation)
-            self._stack[-1].set_brief_description(content.strip())
+            self._stack[-1].set_brief(content.strip())
         elif PatternHandler.META_DESCRIPTION == self._state:
             assert isinstance(self._stack[-1], MetaInformation)
             self._stack[-1].set_description(content.strip())

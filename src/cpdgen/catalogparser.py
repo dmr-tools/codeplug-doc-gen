@@ -3,7 +3,7 @@ from xml.sax.handler import ContentHandler
 from cpdgen.catalog import Catalog, Model, Firmware
 from datetime import date
 from xml.sax import parse, SAXParseException
-from patternparser import PatternHandler
+from cpdgen.patternparser import PatternHandler
 from logging import info
 
 
