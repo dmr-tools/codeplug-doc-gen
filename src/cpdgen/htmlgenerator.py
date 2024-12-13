@@ -5,10 +5,22 @@ from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpa
 class HTMLGenerator:
     def __init__(self):
         self._builder = ElementTree.TreeBuilder()
-        self._html = self._builder.start("html", {})
+        self._html = self._builder.start("html", {"lang": "en"})
         self._head = self._builder.start("head", {})
+        self._builder.start("meta", {"name": "viewport", "content": "width=device-width, initial-scale=1"})
+        self._builder.end("meta")
+        self._builder.start("link", {
+            "rel": "stylesheet",
+            "href": "https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css",
+            "integrity": "sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu",
+            "crossorigin": "anonymous"})
         self._builder.end("head")
-        self._body = self._builder.start("body", {})
+        self._body = self._builder.start("body", {"class": "container"})
+        self._header = self._builder.start("header", {"class": "row"})
+        self._builder.end("header")
+        self._nav = self._builder.start("nav", {"class": "navbar"})
+        self._builder.end("nav")
+        self._main = self._builder.start("main", {"class": "row"})
         self._current = None
 
     def get_document(self) -> ElementTree.ElementTree:
@@ -44,11 +56,24 @@ class HTMLGenerator:
 
     def process_document(self, doc: Document):
         if doc.has_title():
-            te = ElementTree.Element("title")
-            self._head.append(te)
-            te.text = te.text + doc.get_title() if te.text else doc.get_title()
-        self._current = self._body
+            te = ElementTree.SubElement(self._head, "title")
+            te.text = doc.get_title()
+            ph = ElementTree.SubElement(self._header, "div", {"class": "jumbotron"})
+            h1 = ElementTree.SubElement(ph, "h1")
+            h1.text = doc.get_title()
+            if doc.has_subtitle():
+                sub = ElementTree.SubElement(h1, "small")
+                sub.text = doc.get_subtitle()
+            sub = ElementTree.SubElement(ph, "p", {})
+            sub.text = "Generated documentation of all codeplugs."
+        navlist = ElementTree.SubElement(self._nav, "ol", {"class": "nav nav-pills nav-stacked"})
+        self._current = self._main
         for el in doc:
+            if isinstance(el, Section):
+                li = ElementTree.SubElement(navlist, "li", {})
+                a = ElementTree.SubElement(li, "a", {"href": "#"+el.get_segment_id()})
+                for span in el.get_title():
+                    a.text = a.text + span.get_content() if a.text else span.get_content()
             self.process(el)
 
     def process_section(self, sec: Section):
@@ -75,7 +100,7 @@ class HTMLGenerator:
             self.pop()
 
     def process_table(self, tab: Table):
-        self.push("table", attrs={"id": tab.get_segment_id()})
+        self.push("table", attrs={"id": tab.get_segment_id(), "class": "table table-condensed"})
         if tab.has_header():
             self.push("tr")
             for head in tab.get_header():
@@ -98,7 +123,7 @@ class HTMLGenerator:
         self.pop()
 
     def process_toc(self, toc: TableOfContents):
-        self.push("h5")
+        self.push("h1")
         self.process_paragraph(toc.get_title(), False)
         self.pop()
         self.push("ol")
