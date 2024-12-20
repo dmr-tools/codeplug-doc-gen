@@ -19,6 +19,7 @@ class HTMLGenerator:
         self._header = self._builder.start("header", {"class": "row"})
         self._builder.end("header")
         self._nav = self._builder.start("nav", {"class": "navbar"})
+        self._builder.start("h1", {}); self._builder.data("Devices"); self._builder.end("h1")
         self._builder.end("nav")
         self._main = self._builder.start("main", {"class": "row"})
         self._current = None
@@ -79,18 +80,27 @@ class HTMLGenerator:
     def process_section(self, sec: Section):
         level: int = sec.get_level()
         number: str = sec.get_segment_numbering()
-        self.push("h{}".format(level), attrs={"id": sec.get_segment_id()})
+        self.push("h{}".format(min(5, level)), attrs={"id": sec.get_segment_id(), "class": "text-primary"})
         self.text(number + " ")
         self.process_paragraph(sec.get_title(), False)
+        if sec.has_subtitle():
+            self.text(" ")
+            self.push("small", attrs={"class": "text-muted"})
+            self.process_paragraph(sec.get_subtitle(), False)
+            self.pop()
         self.pop()
         for seg in sec:
             self.process(seg)
 
     def process_paragraph(self, par: Paragraph, encapsulate: bool = True):
         if par.has_title():
-            self.push("h5")
+            self.push("h6", attrs={"class": "text-primary"})
             self.process_paragraph(par.get_title(), False)
-            self.text(":")
+            if par.has_subtitle():
+                self.text(" ")
+                self.push("small", attrs={"class": "text-muted"})
+                self.process_paragraph(par.get_subtitle(), False)
+                self.pop()
             self.pop()
         if encapsulate:
             self.push("p", attrs={"id": par.get_segment_id()})
@@ -126,7 +136,7 @@ class HTMLGenerator:
         self.push("h1")
         self.process_paragraph(toc.get_title(), False)
         self.pop()
-        self.push("ol")
+        self.push("ol", attrs={"class": "list-unstyled", "style": "font-size: 120%"})
         for item in toc:
             self.process_toc_item(item)
         self.pop()
@@ -135,7 +145,7 @@ class HTMLGenerator:
         self.push("li")
         self.process_span(item)
         if len(item):
-            self.push("ol")
+            self.push("ol", attrs={"class": "list-unstyled", "style": "margin-left:1em"})
             for subitem in item:
                 self.process_toc_item(subitem)
             self.pop()

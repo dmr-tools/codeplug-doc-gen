@@ -14,6 +14,7 @@ class DocumentSegment(ABC):
             self._title = Paragraph().add(TextSpan(title))
         elif isinstance(title, TextSpan):
             self._title = Paragraph().add(title)
+        self._subtitle = None
         self._number = None
         self._id = None
 
@@ -61,6 +62,22 @@ class DocumentSegment(ABC):
     def get_title(self):
         return self._title
 
+    def has_subtitle(self):
+        return isinstance(self._subtitle, Paragraph)
+
+    def get_subtitle(self):
+        return self._subtitle
+
+    def set_subtitle(self, text):
+        if isinstance(text, str):
+            self._subtitle = Paragraph()
+            self._subtitle.add(text)
+        if isinstance(text, TextSpan):
+            self._subtitle = Paragraph()
+            self._subtitle.add(text)
+        if isinstance(text, Paragraph):
+            self._subtitle = text
+        
 
 class Section(DocumentSegment):
     def __init__(self, title, parent=None):

@@ -1,6 +1,6 @@
 from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
-    FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern
+    FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern, MetaInformation
 from cpdgen.elementmap import ElementMap
 from cpdgen.catalog import Catalog, Model
 
@@ -67,12 +67,19 @@ class DocumentGenerator:
             return self.processUnknownDataPattern(pattern)
         raise TypeError("Unhandled field pattern type '{}'.".format(type(pattern)))
 
+    def processMeta(self, meta: MetaInformation):
+        if meta.has_brief():
+            para = Paragraph()
+            para.add(meta.get_brief())
+            self.back().add(para)
+        if meta.has_description():
+            desc = Paragraph(title="Description")
+            desc.add(meta.get_description())
+            self.back().add(desc)
+
     def processCodeplug(self, cp: Codeplug) -> Section:
         self.push(Section("Codeplug {}".format(cp.meta().get_name())))
-        if cp.meta().has_description():
-            desc = Paragraph()
-            desc.add(cp.meta().get_description())
-            self.back().add(desc)
+        self.processMeta(cp.meta())
         table = Table(3)
         self.back().add(table)
         table.set_header("Address", "Element", "Description")
@@ -80,7 +87,6 @@ class DocumentGenerator:
             el_sec = self.processPattern(el)
             table.add_row(str(el.get_address()), Reference(el_sec, el.meta().get_name()),
                           el.meta().get_brief() if el.meta().has_brief() else "")
-
         return self.pop()
 
     def processRepeat(self, repeat: SparseRepeat|BlockRepeat|FixedRepeat) -> Section:
@@ -95,20 +101,18 @@ class DocumentGenerator:
             para.add("Exactly {} repetitions of {}.".format(
                 repeat.get_n(), repeat.get_child().meta().get_name()))
             self.back().add(para)
-        if repeat.meta().has_description():
-            para = Paragraph()
-            para.add(repeat.meta().get_description())
-            self.back().add(para)
+        self.processMeta(repeat.meta())
         sec = self.pop()
         self.processPattern(repeat.get_child())
         return sec
 
     def processElement(self, element: ElementPattern):
         self.push(Section(element.meta().get_name()))
-        if element.meta().has_description():
-            para = Paragraph()
-            para.add(element.meta().get_description())
-            self.back().add(para)
+        para = Paragraph()
+        para.add("Element at address {} of size {}."
+                 .format(element.get_address(), element.get_size()))
+        self.back().add(para)
+        self.processMeta(element.meta())
         mapper = ElementMap()
         mapper.process(element)
         overview = Figure("Element Structure", mapper.document())
@@ -118,25 +122,31 @@ class DocumentGenerator:
         return self.pop()
 
     def processStringPattern(self, string: StringPattern):
-        para = Paragraph(string.meta().get_name() if not string.meta().has_short_name() else
-                         "{} ({})".format(string.meta().get_name(), string.meta().get_short_name()))
+        para = Paragraph(string.meta().get_name())
+        if string.meta().has_short_name():
+            para.set_subtitle(string.meta().get_short_name())
         self.back().add(para)
+        if string.has_address():
+            para.add("At address {}: ".format(string.get_address()))
         if StringPattern.ASCII == string.get_format():
-            para.add("ASCII string of length (up to) {}, {:02X}-padded."
+            para.add("ASCII string of length (up to) {} chars, {:02X}h-padded."
                      .format(string.get_chars(), string.get_fill()))
         else:
-            para.add("Unicode string of length (up to) {} (size {}b), {:02X}-padded."
+            para.add("Unicode string of length (up to) {} chars (size {}b), {:04X}h-padded."
                      .format(string.get_chars(), string.get_size().bytes(), string.get_fill()))
+        if string.meta().has_brief():
+            para.add(" " + string.meta().get_brief())
         if string.meta().has_description():
-            tmp = Paragraph()
-            self.back().add(tmp)
-            tmp.add(string.meta().get_description())
+            para.add(" " + string.meta().get_description())
         return para
 
     def processEnumPattern(self, enum: EnumPattern):
-        para = Paragraph(enum.meta().get_name() if not enum.meta().has_short_name() else
-                         "{} ({})".format(enum.meta().get_name(), enum.meta().get_short_name()))
+        para = Paragraph(enum.meta().get_name())
+        if enum.meta().has_short_name():
+            para.set_subtitle(enum.meta().get_short_name())
         self.back().add(para)
+        if enum.has_address():
+            para.add("At address {}: ".format(enum.get_address()))
         para.add("Enumeration of size {}, with {} options."
                  .format(enum.get_size(), len(enum)))
         if len(enum):
@@ -147,40 +157,49 @@ class DocumentGenerator:
                 options.add_row(
                     str(item.value), item.get_name(), item.get_description()
                 )
+        if enum.meta().has_brief():
+            para.add(" " + enum.meta().get_brief())
         if enum.meta().has_description():
-            tmp = Paragraph()
-            self.back().add(tmp)
-            tmp.add(enum.meta().get_description())
+            para.add(" " + enum.meta().get_description())
         return para
 
     def processIntegerPattern(self, integer: IntegerPattern):
-        para = Paragraph(integer.meta().get_name() if not integer.meta().has_short_name() else
-                         "{} ({})".format(integer.meta().get_name(), integer.meta().get_short_name()))
+        para = Paragraph(integer.meta().get_name())
+        if integer.meta().has_short_name():
+            para.set_subtitle(integer.meta().get_short_name())
         self.back().add(para)
+        if integer.has_address():
+            para.add("At address {}: ".format(integer.get_address()))
         para.add("{}-bit {} {}-endian integer value ({})."
                  .format(integer.get_size().bits(),
                          {IntegerPattern.SIGNED: "signed", IntegerPattern.UNSIGNED: "unsigned",
                           IntegerPattern.BCD: "bcd"}[integer.get_format()],
                          {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
                          integer.get_format_string()))
+        if integer.meta().has_brief():
+            para.add(" " + integer.meta().get_brief())
         if integer.meta().has_description():
-            tmp = Paragraph()
-            self.back().add(tmp)
-            tmp.add(integer.meta().get_description())
+            para.add(" " + integer.meta().get_description())
         return para
 
     def processUnusedDataPattern(self, unused: UnusedDataPattern):
-        para = Paragraph(unused.meta().get_name() if not unused.meta().has_short_name() else
-                         "{} ({})".format(unused.meta().get_name(), unused.meta().get_short_name()))
+        para = Paragraph(unused.meta().get_name())
+        if unused.meta().has_short_name():
+            para.set_subtitle(unused.meta().get_short_name())
         self.back().add(para)
+        if unused.has_address():
+            para.add("At address {}: ".format(unused.get_address()))
         para.add("Unused data of size {}: {}"
                  .format(unused.get_size(), unused.get_content().hex(" ")))
         return para
 
     def processUnknownDataPattern(self, unknown: UnknownDataPattern):
-        para = Paragraph(unknown.meta().get_name() if not unknown.meta().has_short_name() else
-                         "{} ({})".format(unknown.meta().get_name(), unknown.meta().get_short_name()))
+        para = Paragraph(unknown.meta().get_name())
+        if unknown.meta().has_short_name():
+            para.set_subtitle(unknown.meta().get_short_name())
         self.back().add(para)
+        if unknown.has_address():
+            para.add("At address {}: ".format(unknown.get_address()))
         para.add("Unknown data of size {}."
                  .format(unknown.get_size()))
         return para
