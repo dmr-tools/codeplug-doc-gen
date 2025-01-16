@@ -197,7 +197,7 @@ class DocumentGenerator:
         if integer.meta().has_brief():
             para.add(" " + integer.meta().get_brief())
         if integer.meta().has_description():
-            tmp = Paragraph
+            tmp = Paragraph()
             tmp.add(" " + integer.meta().get_description())
             self.back().add(tmp)
         return para
