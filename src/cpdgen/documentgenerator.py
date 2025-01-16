@@ -93,8 +93,18 @@ class DocumentGenerator:
         self.push(Section(repeat.meta().get_name()))
         if isinstance(repeat, SparseRepeat|BlockRepeat):
             para = Paragraph()
-            para.add("Up to {} repetitions of {}.".format(
-                repeat.get_min(), repeat.get_child().meta().get_name()))
+            if 0 == repeat.get_min() and isinstance(repeat.get_max(), int):
+                para.add("Up to {} repetitions of {}.".format(
+                    repeat.get_max(), repeat.get_child().meta().get_name()))
+            elif 0 == repeat.get_min():
+                para.add("Some repetitions of {}.".format(
+                    repeat.get_max(), repeat.get_child().meta().get_name()))
+            elif isinstance(repeat.get_max(), int):
+                para.add("Between {} and {} repetitions of {}.".format(
+                    repeat.get_min(), repeat.get_max(), repeat.get_child().meta().get_name()))
+            else:
+                para.add("At least {} repetitions of {}.".format(
+                    repeat.get_min(), repeat.get_child().meta().get_name()))
             self.back().add(para)
         elif isinstance(repeat, FixedRepeat):
             para = Paragraph()
@@ -109,8 +119,12 @@ class DocumentGenerator:
     def processElement(self, element: ElementPattern):
         self.push(Section(element.meta().get_name()))
         para = Paragraph()
-        para.add("Element at address {} of size {}."
-                 .format(element.get_address(), element.get_size()))
+        if element.has_address():
+            para.add("Element at address {} of size {}."
+                     .format(element.get_address(), element.get_size()))
+        else:
+            para.add("Element of size {}."
+                     .format(element.get_address(), element.get_size()))
         self.back().add(para)
         self.processMeta(element.meta())
         mapper = ElementMap()
@@ -137,7 +151,9 @@ class DocumentGenerator:
         if string.meta().has_brief():
             para.add(" " + string.meta().get_brief())
         if string.meta().has_description():
-            para.add(" " + string.meta().get_description())
+            tmp = Paragraph()
+            tmp.add(" " + string.meta().get_description())
+            self.back().add(tmp)
         return para
 
     def processEnumPattern(self, enum: EnumPattern):
@@ -149,6 +165,12 @@ class DocumentGenerator:
             para.add("At address {}: ".format(enum.get_address()))
         para.add("Enumeration of size {}, with {} options."
                  .format(enum.get_size(), len(enum)))
+        if enum.meta().has_brief():
+            para.add(" " + enum.meta().get_brief())
+        if enum.meta().has_description():
+            tmp = Paragraph()
+            para.add(" " + enum.meta().get_description())
+            self.back().add(tmp)
         if len(enum):
             options = Table("Possible values")
             self.back().add(options)
@@ -157,10 +179,6 @@ class DocumentGenerator:
                 options.add_row(
                     str(item.value), item.get_name(), item.get_description()
                 )
-        if enum.meta().has_brief():
-            para.add(" " + enum.meta().get_brief())
-        if enum.meta().has_description():
-            para.add(" " + enum.meta().get_description())
         return para
 
     def processIntegerPattern(self, integer: IntegerPattern):
@@ -179,7 +197,9 @@ class DocumentGenerator:
         if integer.meta().has_brief():
             para.add(" " + integer.meta().get_brief())
         if integer.meta().has_description():
-            para.add(" " + integer.meta().get_description())
+            tmp = Paragraph
+            tmp.add(" " + integer.meta().get_description())
+            self.back().add(tmp)
         return para
 
     def processUnusedDataPattern(self, unused: UnusedDataPattern):
