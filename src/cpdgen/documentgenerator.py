@@ -34,14 +34,16 @@ class DocumentGenerator:
 
     def processModel(self, model: Model):
         assert isinstance(model, Model)
-        self.push(Section("Code-plugs of {}".format(model.get_name())))
-        if model.has_description():
-            para = Paragraph()
-            para.add(model.get_description())
+        if 1 < len(model):
+            self.push(Section("Code-plugs of {}".format(model.get_name())))
+            if model.has_description():
+                para = Paragraph()
+                para.add(model.get_description())
         for firmware in model:
             if firmware.is_valid():
                 self.processCodeplug(firmware.get_codeplug())
-        self.pop()
+        if 1 < len(model):
+            self.pop()
 
     def processPattern(self, pattern: AbstractPattern) -> Section | Paragraph:
         if isinstance(pattern, Codeplug):
@@ -68,6 +70,9 @@ class DocumentGenerator:
         raise TypeError("Unhandled field pattern type '{}'.".format(type(pattern)))
 
     def processMeta(self, meta: MetaInformation):
+        if meta.get_version():
+            para = Paragraph()
+            para.add("Matches firmware version {} and possibly later.".format(meta.get_version()))
         if meta.has_brief():
             para = Paragraph()
             para.add(meta.get_brief())
@@ -172,7 +177,7 @@ class DocumentGenerator:
             para.add(" " + enum.meta().get_description())
             self.back().add(tmp)
         if len(enum):
-            options = Table("Possible values")
+            options = Table(3, "Possible values")
             self.back().add(options)
             options.set_header("Value", "Name", "Description")
             for item in enum:
