@@ -113,18 +113,21 @@ class PatternHandler(ContentHandler):
 
     def startDoneElement(self, attrs):
         assert isinstance(self._stack[-1], MetaInformation)
+        self._stack[-1].set_flag(MetaInformation.FLAG_DONE)
 
     def endDoneElement(self):
         pass
 
     def startNeedsReviewElement(self, attrs):
         assert isinstance(self._stack[-1], MetaInformation)
+        self._stack[-1].set_flag(MetaInformation.FLAG_NEEDS_REVIEW)
 
     def endNeedsReviewElement(self):
         pass
 
     def startIncompleteElement(self, attrs):
         assert isinstance(self._stack[-1], MetaInformation)
+        self._stack[-1].set_flag(MetaInformation.FLAG_INCOMPLETE)
 
     def endIncompleteElement(self):
         pass

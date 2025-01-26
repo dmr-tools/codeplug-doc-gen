@@ -166,6 +166,9 @@ class Table(DocumentSegment):
     def __iter__(self):
         return iter(self._rows)
 
+    def get_num_cols(self):
+        return self._num_cols
+
     def get_segment_type(self):
         return "Table"
 

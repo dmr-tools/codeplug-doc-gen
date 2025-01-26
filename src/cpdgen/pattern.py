@@ -87,13 +87,18 @@ class Size:
 
 
 class MetaInformation:
+    FLAG_NONE = 0,
+    FLAG_DONE = 1
+    FLAG_NEEDS_REVIEW = 2
+    FLAG_INCOMPLETE = 3
+
     def __init__(self):
         self._name = None
         self._short_name = None
         self._brief = None
         self._description = None
         self._firmware_version = None
-        self._flags = 0
+        self._flags = MetaInformation.FLAG_NONE
 
     def get_name(self):
         return self._name
@@ -133,6 +138,12 @@ class MetaInformation:
 
     def set_version(self, version):
         self._firmware_version = version
+
+    def set_flag(self, flag: int):
+        self._flags = flag
+
+    def get_flag(self) -> int:
+        return self._flags
 
 
 class AbstractPattern:
