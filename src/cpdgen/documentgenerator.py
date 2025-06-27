@@ -34,16 +34,22 @@ class DocumentGenerator:
 
     def processModel(self, model: Model):
         assert isinstance(model, Model)
-        if 1 < len(model):
-            self.push(Section("Code-plugs of {}".format(model.get_name())))
-            if model.has_description():
-                para = Paragraph()
-                para.add(model.get_description())
+        self.push(Section("Code-plugs of {}".format(model.get_name())))
+        if model.has_description():
+            para = Paragraph()
+            para.add(model.get_description())
+
+        table = Table(3)
+        self.back().add(table)
+        table.set_header("Version", "Released")
+
         for firmware in model:
             if firmware.is_valid():
-                self.processCodeplug(firmware.get_codeplug())
-        if 1 < len(model):
-            self.pop()
+                cp_sec = self.processCodeplug(firmware.get_codeplug())
+                table.add_row(Reference(cp_sec, firmware.get_name()),
+                              str(firmware.get_released()) if firmware.has_released() else "Unknown")
+
+        self.pop()
 
     def processPattern(self, pattern: AbstractPattern) -> Section | Paragraph:
         if isinstance(pattern, Codeplug):
