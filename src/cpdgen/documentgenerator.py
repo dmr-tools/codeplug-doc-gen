@@ -77,8 +77,12 @@ class DocumentGenerator:
 
     def processMeta(self, meta: MetaInformation):
         if meta.get_version():
-            para = Paragraph()
-            para.add("Matches firmware version {} and possibly later.".format(meta.get_version()))
+            if isinstance(self.back(), DocumentSegment):
+                self.back().set_subtitle("Version {}".format(meta.get_version()))
+            else:
+                para = Paragraph()
+                para.add("Matches firmware version {} and possibly later.".format(meta.get_version()))
+                self.back().add(para)
         if meta.has_brief():
             para = Paragraph()
             para.add(meta.get_brief())
