@@ -1,8 +1,9 @@
 import os.path
 import sys
+import xml.sax.handler
 
 from cpdgen.catalogparser import CatalogHandler
-from xml.sax import parse
+from xml.sax import make_parser
 from cpdgen.documentgenerator import DocumentGenerator
 from argparse import ArgumentParser
 from cpdgen.htmlgenerator import HTMLGenerator
@@ -25,7 +26,10 @@ def main_cli():
     base_path = os.path.dirname(abs_path)
     catalog_handler = CatalogHandler(base_path)
     info("Read catalog from {} ...".format(abs_path))
-    parse(open(abs_path, "r"), catalog_handler)
+    xmlParser = make_parser()
+    xmlParser.setContentHandler(catalog_handler)
+    xmlParser.setFeature(xml.sax.handler.feature_namespaces, True)
+    xmlParser.parse(open(abs_path, "r"))
     cat = catalog_handler.pop()
 
     docgen = DocumentGenerator()
