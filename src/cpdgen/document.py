@@ -222,6 +222,26 @@ class TextSpan:
         return self._content
 
 
+class Symbol (TextSpan):
+    Okay = 1
+    Warning = 2
+    Critical = 3
+
+    def __init__(self, symbol):
+        self._symbol = symbol
+
+    def get_symbol(self):
+        return self._symbol
+
+    def has_content(self) -> bool:
+        return False
+
+
+class Version (TextSpan):
+    def __init__(self, version:str):
+        super().__init__(version)
+
+
 class Reference(TextSpan):
     def __init__(self, segment: DocumentSegment, content: str = ""):
         super().__init__(content)
@@ -234,6 +254,7 @@ class Reference(TextSpan):
 
     def get_segment(self) -> DocumentSegment:
         return self._segment
+
 
 class TOCItem(Reference):
     def __init__(self, section: Section):

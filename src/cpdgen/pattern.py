@@ -133,11 +133,17 @@ class MetaInformation:
     def set_description(self, description):
         self._description = str(description)
 
+    def has_version(self):
+        return self._firmware_version is not None
+
     def get_version(self):
         return self._firmware_version
 
     def set_version(self, version):
         self._firmware_version = version
+
+    def has_flag(self):
+        return self._flags is not None
 
     def set_flag(self, flag: int):
         self._flags = flag
