@@ -1,4 +1,5 @@
-from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference
+from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference, \
+    TextSpan, Symbol, Version
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
     FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern, MetaInformation
 from cpdgen.elementmap import ElementMap
@@ -28,7 +29,7 @@ class DocumentGenerator:
     def processCatalog(self, catalog: Catalog):
         assert isinstance(catalog, Catalog)
         self._document.set_title("Codeplug documentation")
-        self._document.add(TableOfContents(self._document))
+        #self._document.add(TableOfContents(self._document))
         for model in catalog:
             self.processModel(model)
 
@@ -75,22 +76,40 @@ class DocumentGenerator:
             return self.processUnknownDataPattern(pattern)
         raise TypeError("Unhandled field pattern type '{}'.".format(type(pattern)))
 
+
     def processMeta(self, meta: MetaInformation):
-        if meta.get_version():
-            if isinstance(self.back(), DocumentSegment):
-                self.back().set_subtitle("Version {}".format(meta.get_version()))
-            else:
-                para = Paragraph()
-                para.add("Matches firmware version {} and possibly later.".format(meta.get_version()))
-                self.back().add(para)
+        if isinstance(self.back(), DocumentSegment):
+            subtitle = Paragraph()
+            if meta.has_version(): subtitle.add(self.formatVersion(meta))
+            if meta.has_flag(): subtitle.add(self.formatFlags(meta))
+            if len(subtitle): self.back().set_subtitle(subtitle)
+
         if meta.has_brief():
-            para = Paragraph()
-            para.add(meta.get_brief())
-            self.back().add(para)
+            self.back().add(self.formatBrief(meta))
         if meta.has_description():
             desc = Paragraph(title="Description")
             desc.add(meta.get_description())
             self.back().add(desc)
+
+
+    def formatBrief(self, meta: MetaInformation) -> Paragraph:
+        brief = Paragraph()
+        if meta.has_brief(): brief.add(TextSpan(meta.get_brief()))
+        return brief
+
+    def formatVersion(self, meta: MetaInformation) -> TextSpan:
+        if not meta.has_version():
+            return TextSpan()
+        return Version(meta.get_version())
+
+    def formatFlags(self, meta: MetaInformation) -> TextSpan:
+        if MetaInformation.FLAG_DONE == meta.get_flag():
+            return Symbol(Symbol.Okay)
+        if MetaInformation.FLAG_NEEDS_REVIEW == meta.get_flag():
+            return Symbol(Symbol.Warning)
+        if MetaInformation.FLAG_INCOMPLETE == meta.get_flag():
+            return Symbol(Symbol.Critical)
+        return Symbol(None)
 
     def processCodeplug(self, cp: Codeplug) -> Section:
         self.push(Section("Codeplug {}".format(cp.meta().get_name())))
@@ -101,7 +120,7 @@ class DocumentGenerator:
         for el in cp:
             el_sec = self.processPattern(el)
             table.add_row(str(el.get_address()), Reference(el_sec, el.meta().get_name()),
-                          el.meta().get_brief() if el.meta().has_brief() else "")
+                          self.formatBrief(el.meta()))
         return self.pop()
 
     def processRepeat(self, repeat: SparseRepeat|BlockRepeat|FixedRepeat) -> Section:

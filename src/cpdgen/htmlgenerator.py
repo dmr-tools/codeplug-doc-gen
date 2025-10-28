@@ -1,5 +1,7 @@
+import html
 from xml.etree import ElementTree
-from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan, Reference, TableOfContents, TOCItem
+from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan, Reference, TableOfContents, \
+    TOCItem, Symbol, Version
 
 
 class HTMLGenerator:
@@ -11,15 +13,15 @@ class HTMLGenerator:
         self._builder.end("meta")
         self._builder.start("link", {
             "rel": "stylesheet",
-            "href": "https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css",
-            "integrity": "sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu",
+            "href": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+            "integrity": "sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB",
             "crossorigin": "anonymous"})
         self._builder.end("head")
         self._body = self._builder.start("body", {"class": "container"})
         self._header = self._builder.start("header", {"class": "row"})
         self._builder.end("header")
-        self._nav = self._builder.start("nav", {"class": "navbar"})
         self._builder.start("h1", {}); self._builder.data("Devices"); self._builder.end("h1")
+        self._nav = self._builder.start("nav", {"class": "navbar navbar-expand-lg"})
         self._builder.end("nav")
         self._main = self._builder.start("main", {"class": "row"})
         self._current = None
@@ -29,6 +31,9 @@ class HTMLGenerator:
 
     def text(self, txt):
         self._builder.data(txt)
+
+    def raw(self, code):
+        self._builder.data(html.unescape(code))
 
     def push(self, tag, attrs={}):
         self._current = self._builder.start(tag, attrs)
@@ -67,12 +72,12 @@ class HTMLGenerator:
                 sub.text = doc.get_subtitle()
             sub = ElementTree.SubElement(ph, "p", {})
             sub.text = "Generated documentation of all codeplugs."
-        navlist = ElementTree.SubElement(self._nav, "ol", {"class": "nav nav-pills nav-stacked"})
+        navlist = ElementTree.SubElement(self._nav, "ul", {"class": "nav nav-pills flex-column"})
         self._current = self._main
         for el in doc:
             if isinstance(el, Section):
-                li = ElementTree.SubElement(navlist, "li", {})
-                a = ElementTree.SubElement(li, "a", {"href": "#"+el.get_segment_id()})
+                li = ElementTree.SubElement(navlist, "li", {"class": "nav-item"})
+                a = ElementTree.SubElement(li, "a", {"href": "#"+el.get_segment_id(), "class": "nav-link"})
                 for span in el.get_title():
                     a.text = a.text + span.get_content() if a.text else span.get_content()
             self.process(el)
@@ -153,7 +158,34 @@ class HTMLGenerator:
 
     def process_span(self, span: TextSpan):
         if isinstance(span, Reference):
-            self.push("a", attrs={"href": "#"+span.get_segment().get_segment_id()})
-        self.text(span.get_content())
-        if isinstance(span, Reference):
+            self.process_reference(span)
+        elif isinstance(span, Symbol):
+            self.process_symbol(span)
+        elif isinstance(span, Version):
+            self.process_version(span)
+        else:
+            self.text(span.get_content())
+
+    def process_reference(self, ref: Reference):
+        self.push("a", attrs={"href": "#" + ref.get_segment().get_segment_id()})
+        self.text(ref.get_content())
+        self.pop()
+
+    def process_symbol(self, sym: Symbol):
+        if Symbol.Okay == sym.get_symbol():
+            self.push("span", {"class":"badge text-bg-success"})
+            self.text("done")
             self.pop()
+        elif Symbol.Warning == sym.get_symbol():
+            self.push("span", {"class":"badge text-bg-warning"})
+            self.text("needs review")
+            self.pop()
+        elif Symbol.Critical == sym.get_symbol():
+            self.push("span", {"class":"badge text-bg-danger"})
+            self.text("incomplete")
+            self.pop()
+
+    def process_version(self, version):
+        self.push("span", {"class": "badge text-bg-info"})
+        self.text("v"+version.get_content())
+        self.pop()

@@ -1,7 +1,7 @@
 import io
 import xml.etree.ElementTree
 
-from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan, Reference, TableOfContents
+from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpan, Reference, TableOfContents, Version, Symbol
 
 
 class TypstGenerator:
@@ -117,4 +117,25 @@ class TypstGenerator:
     def process_span(self, span: TextSpan):
         #if isinstance(span, Reference):
         #    self._content.write("@{}".format(span.get_segment().get_segment_id()))
-        self._content.write(span.get_content().replace("*", r"\*").replace("#", r"\#"))
+        if isinstance(span, Version):
+            self.process_version(span)
+        elif isinstance(span, Symbol):
+            self.process_symbol(span)
+        else:
+            self.process_text(span.get_content())
+
+    def process_text(self, text:str):
+        self._content.write(text.replace("*", r"\*").replace("#", r"\#"))
+
+    def process_version(self, version:Version):
+        self.process_text(f"Version {version.get_content()}")
+
+    def process_symbol(self, symbol:Symbol):
+        if Symbol.Okay == symbol.get_symbol():
+            self._content.write("#sym.checkmark")
+        elif Symbol.Warning == symbol.get_symbol():
+            self._content.write("#sym.excl")
+        elif Symbol.Critical == symbol.get_symbol():
+            self._content.write("#sym.excl.double")
+
+
