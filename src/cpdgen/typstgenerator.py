@@ -64,6 +64,10 @@ class TypstGenerator:
         level: int = sec.get_level()
         self._content.write('#heading(depth: {}, ['.format(min(5, level)))
         self.process_paragraph(sec.get_title(), False)
+        if sec.has_subtitle():
+            self._content.write(' #text(fill: luma(75%), [(')
+            self.process_paragraph(sec.get_subtitle(), False)
+            self._content.write(')])')
         self._content.write(']) <{}>\n\n'.format(sec.get_segment_id()))
         for seg in sec:
             self.process(seg)
