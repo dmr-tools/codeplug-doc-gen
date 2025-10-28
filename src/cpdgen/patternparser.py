@@ -203,7 +203,8 @@ class PatternHandler(ContentHandler):
         assert isinstance(self._stack[-1], StructuredPatternInterface)
         at = Address.parse(attrs["at"]) if "at" in attrs else None
         width = Size.parse(attrs["width"]) if "width" in attrs else None
-        pattern = EnumPattern(width, None, at)
+        default = int(attrs["default"]) if "default" in attrs else None
+        pattern = EnumPattern(width, default, at)
         self._stack.append(pattern)
 
     def endEnumElement(self):

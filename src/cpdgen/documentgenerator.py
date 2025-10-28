@@ -35,7 +35,8 @@ class DocumentGenerator:
 
     def processModel(self, model: Model):
         assert isinstance(model, Model)
-        self.push(Section("Code-plugs of {}".format(model.get_name())))
+        self.push(Section("Code-plugs of {}".format(model.get_name()),
+                          pagebreak=Section.Odd))
         if model.has_description():
             para = Paragraph()
             para.add(model.get_description())
@@ -119,6 +120,7 @@ class DocumentGenerator:
         table.set_header("Address", "Element", "Description")
         for el in cp:
             el_sec = self.processPattern(el)
+            if isinstance(el_sec, Section): el_sec.set_pagebreak(Section.Any)
             table.add_row(str(el.get_address()), Reference(el_sec, el.meta().get_name()),
                           self.formatBrief(el.meta()))
         return self.pop()
@@ -210,9 +212,10 @@ class DocumentGenerator:
             self.back().add(options)
             options.set_header("Value", "Name", "Description")
             for item in enum:
-                options.add_row(
-                    str(item.value), item.get_name(), item.get_description()
-                )
+                descrption = item.get_description()
+                if enum.has_default_value() and (item.value == enum.get_default_value()):
+                    descrption += f" (default)"
+                options.add_row(str(item.value), item.get_name(), descrption)
         return para
 
     def processIntegerPattern(self, integer: IntegerPattern):
@@ -222,12 +225,23 @@ class DocumentGenerator:
         self.back().add(para)
         if integer.has_address():
             para.add("At address {}: ".format(integer.get_address()))
-        para.add("{}-bit {} {}-endian integer value ({})."
-                 .format(integer.get_size().bits(),
-                         {IntegerPattern.SIGNED: "signed", IntegerPattern.UNSIGNED: "unsigned",
-                          IntegerPattern.BCD: "bcd"}[integer.get_format()],
-                         {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
-                         integer.get_format_string()))
+        if 1 == integer.get_size().bits():
+            para.add("boolean value.")
+        elif 8 >= integer.get_size().bits():
+            para.add("{}-bit {} integer value ({})."
+                     .format(integer.get_size().bits(),
+                             {IntegerPattern.SIGNED: "signed", IntegerPattern.UNSIGNED: "unsigned",
+                              IntegerPattern.BCD: "bcd"}[integer.get_format()],
+                             integer.get_format_string()))
+        else:
+            para.add("{}-bit {} {}-endian integer value ({})."
+                    .format(integer.get_size().bits(),
+                             {IntegerPattern.SIGNED: "signed", IntegerPattern.UNSIGNED: "unsigned",
+                              IntegerPattern.BCD: "bcd"}[integer.get_format()],
+                            {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
+                            integer.get_format_string()))
+        if integer.has_default_value():
+            para.add(f" Default value {integer.get_default_value():x}h.")
         if integer.meta().has_brief():
             para.add(" " + integer.meta().get_brief())
         if integer.meta().has_description():
