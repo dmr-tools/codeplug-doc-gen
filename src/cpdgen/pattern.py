@@ -188,9 +188,9 @@ class DensePattern(AbstractPattern):
 class FixedPattern(DensePattern):
     def __init__(self, size=Size(0), address:Address=None):
         super().__init__(address)
-        self._size = size
+        self._size : Size = size
 
-    def get_size(self):
+    def get_size(self) -> Size:
         return self._size
 
 
@@ -334,6 +334,12 @@ class EnumPattern(FieldPattern):
     def add(self, item: EnumValue):
         self._items.append(item)
 
+    def has_default_value(self):
+        return self._default is not None
+
+    def get_default_value(self):
+        return self._default
+
 
 class IntegerPattern(FieldPattern):
     UNSIGNED = 0
@@ -358,6 +364,14 @@ class IntegerPattern(FieldPattern):
         return self._format
 
     def get_format_string(self):
+        if 1 == self._size.bits():
+            return "bool"
+        if 8 >= self._size.bits():
+            return "{}{}".format(
+                {IntegerPattern.SIGNED: "int", IntegerPattern.UNSIGNED: "uint", IntegerPattern.BCD: "bcd"}[
+                    self._format],
+                self.get_size().bits() // 4 if IntegerPattern.BCD == self._format else self.get_size().bits()
+            )
         return "{}{}{}".format(
             {IntegerPattern.SIGNED: "int", IntegerPattern.UNSIGNED: "uint", IntegerPattern.BCD: "bcd"}[self._format],
             self.get_size().bits()//4 if IntegerPattern.BCD == self._format else self.get_size().bits(),

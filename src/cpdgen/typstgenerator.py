@@ -44,7 +44,7 @@ class TypstGenerator:
         self._content.write('#show heading.where(level: 5): set text(font: "IBM Plex Sans", weight: "medium", fill: navy, size: 13pt)\n')
         self._content.write('#show heading.where(level: 6): set text(font: "IBM Plex Sans", weight: "bold", fill: navy, size: 11pt)\n')
 
-        self._content.write('#set page(paper: "a4", numbering: none)\n')
+        self._content.write('#set page(paper: "a4", numbering: none, margin:(inside:2.5cm, outside:1.5cm))\n')
         if doc.has_title():
             self._content.write('#align(right+horizon, text(font: "IBM Plex Serif", weight: "medium", size: 27pt, smallcaps()[*' + doc.get_title() + '*]))\n\n')
             if doc.has_subtitle():
@@ -57,12 +57,16 @@ class TypstGenerator:
 
         self._content.write('#set page(numbering: "1")\n')
         for el in doc:
-            self._content.write('#pagebreak()\n')
             self.process(el)
 
     def process_section(self, sec):
         level: int = sec.get_level()
-        self._content.write('#heading(depth: {}, ['.format(min(5, level)))
+        if sec.has_pagebreak():
+            to = "none"
+            if Section.Odd == sec.get_pagebreak(): to = '"odd"'
+            if Section.Even == sec.get_pagebreak(): to = '"even"'
+            self._content.write(f"#pagebreak(weak:true, to:{to})")
+        self._content.write(f'#heading(depth: {min(5, level)}, [')
         self.process_paragraph(sec.get_title(), False)
         if sec.has_subtitle():
             self._content.write(' #text(fill: luma(75%), [(')

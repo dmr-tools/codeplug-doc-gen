@@ -63,7 +63,8 @@ class DocumentSegment(ABC):
         return self._title
 
     def has_subtitle(self):
-        return isinstance(self._subtitle, Paragraph)
+        return (isinstance(self._subtitle, Paragraph)
+                and len(self._subtitle))
 
     def get_subtitle(self):
         return self._subtitle
@@ -80,9 +81,14 @@ class DocumentSegment(ABC):
         
 
 class Section(DocumentSegment):
-    def __init__(self, title, parent=None):
+    Even = 1
+    Odd  = 2
+    Any  = Even | Odd
+
+    def __init__(self, title, pagebreak=None, parent=None):
         super().__init__(title, parent)
         self._segments: [DocumentSegment] = []
+        self._pagebreak = pagebreak
 
     def __iter__(self):
         return iter(self._segments)
@@ -117,6 +123,15 @@ class Section(DocumentSegment):
             title = Paragraph()
             title.add("Unnamed section")
         return title
+
+    def has_pagebreak(self):
+        return self._pagebreak is not None
+
+    def get_pagebreak(self):
+        return self._pagebreak
+
+    def set_pagebreak(self, pagebreak):
+        self._pagebreak = pagebreak
 
 
 class Paragraph(DocumentSegment):
