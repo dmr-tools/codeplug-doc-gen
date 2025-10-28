@@ -111,9 +111,9 @@ class ElementMap:
         self._document.add(fpath)
         self._document.add(spath)
         if is_start:
-            text = Text(name, x=(x+r,), y=(y+height/2+sw,), dominant_baseline="middle")
+            text = Text(name, x=(x+r,), y=(y+height/2+sw,), dominant_baseline="middle", font_size="12pt")
         else:
-            text = Text("...", x=(x+width/2,), y=(y+height/2+sw,), text_anchor="middle")
+            text = Text("...", x=(x+width/2,), y=(y+height/2+sw,), text_anchor="middle", font_size="12pt")
         self._document.add(text)
 
     def xml(self) -> ElementTree:
