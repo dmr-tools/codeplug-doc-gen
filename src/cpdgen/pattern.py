@@ -301,6 +301,29 @@ class ElementPattern(FixedPattern, StructuredPatternInterface):
         self._size += child.get_size()
 
 
+class UnionPattern(FixedPattern, StructuredPatternInterface):
+    def __init__(self, address: Address = None):
+        super().__init__(Size(0), address)
+        self._children = []
+
+    def __len__(self):
+        return len(self._children)
+
+    def __getitem__(self, item):
+        return self._children[item]
+
+    def __iter__(self):
+        return iter(self._children)
+
+    def add(self, child: FixedPattern):
+        if not isinstance(child, FixedPattern):
+            raise TypeError("Cannot add a variable-sized pattern to a fixed one.")
+        self._children.append(child)
+        child.set_address(Address(0))
+        if self._size <= child.get_size():
+            self._size = child.get_size()
+
+
 class FieldPattern(FixedPattern):
     def __init__(self, size:Size = Size(), address:Address = None):
         super().__init__(size, address)

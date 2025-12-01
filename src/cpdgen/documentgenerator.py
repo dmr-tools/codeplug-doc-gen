@@ -1,7 +1,8 @@
 from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference, \
     TextSpan, Symbol, Version
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
-    FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern, MetaInformation
+    UnionPattern, FieldPattern, StringPattern, EnumPattern, IntegerPattern, UnusedDataPattern, UnknownDataPattern, \
+    MetaInformation
 from cpdgen.elementmap import ElementMap
 from cpdgen.catalog import Catalog, Model
 
@@ -60,6 +61,8 @@ class DocumentGenerator:
             return self.processRepeat(pattern)
         if isinstance(pattern, ElementPattern):
             return self.processElement(pattern)
+        if isinstance(pattern, UnionPattern):
+            return self.processUnion(pattern)
         if isinstance(pattern, FieldPattern):
             return self.processFieldPattern(pattern)
         raise TypeError("Unhandled pattern type '{}'.".format(type(pattern)))
@@ -167,6 +170,21 @@ class DocumentGenerator:
         mapper.process(element)
         overview = Figure("Element Structure", mapper.document())
         self.back().add(overview)
+        for child in element:
+            self.processPattern(child)
+        return self.pop()
+
+    def processUnion(self, element: UnionPattern):
+        self.push(Section(element.meta().get_name()))
+        para = Paragraph()
+        if element.has_address():
+            para.add("Union at address {} of size {}."
+                     .format(element.get_address(), element.get_size()))
+        else:
+            para.add("Union size {}."
+                     .format(element.get_address(), element.get_size()))
+        self.back().add(para)
+        self.processMeta(element.meta())
         for child in element:
             self.processPattern(child)
         return self.pop()

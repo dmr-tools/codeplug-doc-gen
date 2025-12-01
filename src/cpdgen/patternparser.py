@@ -1,6 +1,6 @@
 from cpdgen.pattern import AbstractPattern, MetaInformation, Size, Address, Codeplug, FixedRepeat, BlockRepeat, \
-    SparseRepeat, StructuredPatternInterface, ElementPattern, IntegerPattern, StringPattern, EnumPattern, EnumValue,\
-    UnusedDataPattern, UnknownDataPattern
+    SparseRepeat, StructuredPatternInterface, ElementPattern, UnionPattern, IntegerPattern, StringPattern, EnumPattern, \
+    EnumValue, UnusedDataPattern, UnknownDataPattern
 from xml.sax.handler import ContentHandler
 
 
@@ -161,6 +161,16 @@ class PatternHandler(ContentHandler):
         self._stack.append(pattern)
 
     def endElementElement(self):
+        pattern = self._stack.pop()
+        self._stack[-1].add(pattern)
+
+    def startUnionElement(self, attrs):
+        assert isinstance(self._stack[-1], StructuredPatternInterface)
+        at = Address.parse(attrs["at"]) if "at" in attrs else None
+        pattern = UnionPattern(at)
+        self._stack.append(pattern)
+
+    def endUnionElement(self):
         pattern = self._stack.pop()
         self._stack[-1].add(pattern)
 
