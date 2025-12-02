@@ -151,6 +151,8 @@ class PatternHandler(ContentHandler):
 
     def endRepeatElement(self):
         pattern = self._stack.pop()
+        if isinstance(pattern, (FixedRepeat)):
+            pattern.update()
         self._stack[-1].add(pattern)
 
 
@@ -162,6 +164,7 @@ class PatternHandler(ContentHandler):
 
     def endElementElement(self):
         pattern = self._stack.pop()
+        pattern.update()
         self._stack[-1].add(pattern)
 
     def startUnionElement(self, attrs):
@@ -172,6 +175,7 @@ class PatternHandler(ContentHandler):
 
     def endUnionElement(self):
         pattern = self._stack.pop()
+        pattern.update()
         self._stack[-1].add(pattern)
 
     def startIntElement(self, attrs):

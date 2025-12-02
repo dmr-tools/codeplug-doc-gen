@@ -49,7 +49,7 @@ class ElementMap:
             label = Text(str(bit), x=(x+w//2,), y=(y+h//2,), text_anchor="middle")
             self._document.add(label)
 
-        for i in range(total_rows):
+        for i in range(len(line_addresses)):
             address = line_addresses[i]
             x, y = 0, self._margin_top + i*self._block_height
             w, h = self._margin_left, self._block_height

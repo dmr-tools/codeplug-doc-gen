@@ -19,10 +19,6 @@ class Address:
         byte, bit = bits//8, 7 - bits % 8
         return Address(byte, bit)
 
-    def __iadd__(self, other):
-        self._bits += other.bits()
-        return self
-
     def __le__(self, other):
         return self._bits <= other.bits()
 
@@ -59,10 +55,6 @@ class Size:
 
     def __add__(self, other):
         return Size(0, self._bits + other._bits)
-
-    def __iadd__(self, other):
-        self._bits += other._bits
-        return self
 
     def __le__(self, other):
         return self._bits <= other._bits
@@ -185,13 +177,17 @@ class DensePattern(AbstractPattern):
         super().__init__(address)
 
 
-class FixedPattern(DensePattern):
+class FixedPattern(DensePattern, ABC):
     def __init__(self, size=Size(0), address:Address=None):
         super().__init__(address)
         self._size : Size = size
 
     def get_size(self) -> Size:
         return self._size
+
+    @abstractmethod
+    def update(self):
+        pass
 
 
 class SparseRepeat(AbstractPattern, StructuredPatternInterface):
@@ -257,7 +253,7 @@ class FixedRepeat(FixedPattern, StructuredPatternInterface):
         self._child = child
         size = Size()
         if child is not None:
-            size =  child.get_size()*self._n
+            size = child.get_size()*self._n
         super().__init__(size, address)
 
     def get_child(self):
@@ -274,6 +270,10 @@ class FixedRepeat(FixedPattern, StructuredPatternInterface):
 
     def get_n(self):
         return self._n
+
+    def update(self):
+        if self._child:
+            self._size = self._child.get_size() * self._n
 
 
 class ElementPattern(FixedPattern, StructuredPatternInterface):
@@ -298,8 +298,15 @@ class ElementPattern(FixedPattern, StructuredPatternInterface):
             offset = self._children[-1].get_address() + self._children[-1].get_size()
         self._children.append(child)
         child.set_address(offset)
-        self._size += child.get_size()
+        self._size = self._size + child.get_size()
 
+    def update(self):
+        offset, size = Address(0), Size(0)
+        for child in self._children:
+            child.set_address(offset)
+            offset = offset + child.get_size()
+            size   = size + child.get_size()
+        self._size = size
 
 class UnionPattern(FixedPattern, StructuredPatternInterface):
     def __init__(self, address: Address = None):
@@ -323,10 +330,20 @@ class UnionPattern(FixedPattern, StructuredPatternInterface):
         if self._size <= child.get_size():
             self._size = child.get_size()
 
+    def update(self):
+        size = Size(0)
+        for child in self._children:
+            if size <= child.get_size():
+                size = Size(0) + child.get_size()
+        self._size = size
+
 
 class FieldPattern(FixedPattern):
     def __init__(self, size:Size = Size(), address:Address = None):
         super().__init__(size, address)
+
+    def update(self):
+        pass
 
 
 class EnumValue(MetaInformation):

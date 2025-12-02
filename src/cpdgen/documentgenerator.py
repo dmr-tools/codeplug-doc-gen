@@ -163,7 +163,7 @@ class DocumentGenerator:
                      .format(element.get_address(), element.get_size()))
         else:
             para.add("Element of size {}."
-                     .format(element.get_address(), element.get_size()))
+                     .format(element.get_size()))
         self.back().add(para)
         self.processMeta(element.meta())
         mapper = ElementMap()
@@ -182,7 +182,7 @@ class DocumentGenerator:
                      .format(element.get_address(), element.get_size()))
         else:
             para.add("Union size {}."
-                     .format(element.get_address(), element.get_size()))
+                     .format(element.get_size()))
         self.back().add(para)
         self.processMeta(element.meta())
         for child in element:
