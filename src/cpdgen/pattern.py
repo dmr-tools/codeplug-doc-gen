@@ -424,6 +424,9 @@ class IntegerPattern(FieldPattern):
     def get_default_value(self):
         return self._default
 
+    def has_range(self):
+        return (self._range[0] is not None) or (self._range[1] is not None)
+
     def get_range(self):
         return self._range
 

@@ -236,6 +236,7 @@ class DocumentGenerator:
                 options.add_row(str(item.value), item.get_name(), descrption)
         return para
 
+
     def processIntegerPattern(self, integer: IntegerPattern):
         para = Paragraph(integer.meta().get_name())
         if integer.meta().has_short_name():
@@ -258,10 +259,22 @@ class DocumentGenerator:
                               IntegerPattern.BCD: "bcd"}[integer.get_format()],
                             {IntegerPattern.LITTLE: "little", IntegerPattern.BIG: "big"}[integer.get_endian()],
                             integer.get_format_string()))
-        if integer.has_default_value():
+        if integer.has_range():
+            if integer.get_range()[0] is None:
+                para.add(f" Valid values up to {integer.get_range()[1]:x}h")
+            elif integer.get_range()[1] is None:
+                para.add(f" Valid values from {integer.get_range()[0]:x}h")
+            else:
+                para.add(f" Valid values between {integer.get_range()[0]:x}h and {integer.get_range()[1]:x}h");
+            if integer.has_default_value():
+                para.add(f", with default value {integer.get_default_value():x}h.")
+        elif integer.has_default_value():
             para.add(f" Default value {integer.get_default_value():x}h.")
+
         if integer.meta().has_brief():
-            para.add(" " + integer.meta().get_brief())
+            tmp = Paragraph()
+            tmp.add(" " + integer.meta().get_brief())
+            self.back().add(tmp)
         if integer.meta().has_description():
             tmp = Paragraph()
             tmp.add(" " + integer.meta().get_description())
