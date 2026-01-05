@@ -10,7 +10,13 @@ class Address:
             self._bits = byte*8 + 8*(bit//8) + (7-bit%8);
 
     def __str__(self):
-        if 0 == self._bits % 8:
+        return self.format(0 == self._bits % 8)
+
+    def is_byte_aligned(self):
+        return 0 == self._bits % 8
+
+    def format(self, byte:bool) -> str:
+        if byte:
             return "{:x}h".format(self._bits//8)
         return "{:x}h:{}".format(self._bits//8, 7 - self._bits % 8)
 
@@ -67,6 +73,9 @@ class Size:
 
     def bytes(self):
         return self._bits // 8
+
+    def is_byte_sized(self):
+        return 0 == self._bits % 8
 
     @staticmethod
     def parse(string):
@@ -184,6 +193,9 @@ class FixedPattern(DensePattern, ABC):
 
     def get_size(self) -> Size:
         return self._size
+
+    def is_byte_sized(self) -> bool:
+        return self._size.is_byte_sized()
 
     @abstractmethod
     def update(self):
