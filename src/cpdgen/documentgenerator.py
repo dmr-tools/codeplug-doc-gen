@@ -195,7 +195,8 @@ class DocumentGenerator:
             para.set_subtitle(string.meta().get_short_name())
         self.back().add(para)
         if string.has_address():
-            para.add("At address {}: ".format(string.get_address()))
+            addr = string.get_address()
+            para.add("At address {}: ".format(addr.format(addr.is_byte_aligned() and string.is_byte_sized())))
         if StringPattern.ASCII == string.get_format():
             para.add("ASCII string of length (up to) {} chars, {:02X}h-padded."
                      .format(string.get_chars(), string.get_fill()))
@@ -216,7 +217,8 @@ class DocumentGenerator:
             para.set_subtitle(enum.meta().get_short_name())
         self.back().add(para)
         if enum.has_address():
-            para.add("At address {}: ".format(enum.get_address()))
+            addr = enum.get_address()
+            para.add("At address {}: ".format(addr.format(addr.is_byte_aligned() and enum.is_byte_sized())))
         para.add("Enumeration of size {}, with {} options."
                  .format(enum.get_size(), len(enum)))
         if enum.meta().has_brief():
@@ -243,7 +245,8 @@ class DocumentGenerator:
             para.set_subtitle(integer.meta().get_short_name())
         self.back().add(para)
         if integer.has_address():
-            para.add("At address {}: ".format(integer.get_address()))
+            addr = integer.get_address()
+            para.add("At address {}: ".format(addr.format(addr.is_byte_aligned() and integer.is_byte_sized())))
         if 1 == integer.get_size().bits():
             para.add("boolean value.")
         elif 8 >= integer.get_size().bits():
@@ -287,7 +290,8 @@ class DocumentGenerator:
             para.set_subtitle(unused.meta().get_short_name())
         self.back().add(para)
         if unused.has_address():
-            para.add("At address {}: ".format(unused.get_address()))
+            addr = unused.get_address()
+            para.add("At address {}: ".format(addr.format(addr.is_byte_aligned() and unused.is_byte_sized())))
         para.add("Unused data of size {}: {}"
                  .format(unused.get_size(), unused.get_content().hex(" ")))
         return para
