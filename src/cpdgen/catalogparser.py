@@ -97,7 +97,7 @@ class CatalogHandler(ContentHandler):
 
 
     def startModelElement(self, attrs):
-        self.push(Model())
+        self.push(Model(id=attrs[(None, "id")]))
 
     def endModelElement(self):
         obj = self.pop()

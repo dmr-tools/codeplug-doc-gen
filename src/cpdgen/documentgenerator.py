@@ -1,3 +1,5 @@
+from tomlkit import document
+
 from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference, \
     TextSpan, Symbol, Version
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
@@ -8,39 +10,68 @@ from cpdgen.catalog import Catalog, Model
 
 
 class DocumentGenerator:
-    def __init__(self):
-        self._document = Document()
-        self._stack: [DocumentSegment] = []
+    def __init__(self, single_document = True):
+        self._single_document = single_document
+        self._root_document = Document()
+        self._root_document.set_id("index")
+        self._documents: list[Document] = [self._root_document]
+        self._stack: list[DocumentSegment|Document] = [self._root_document]
 
-    def push(self, segment: DocumentSegment):
-        self.back().add(segment)
+    def push(self, segment: Document|DocumentSegment):
+        if isinstance(segment, Document):
+            self._documents.append(segment)
+        else:
+            self.back().add(segment)
         self._stack.append(segment)
 
     def back(self) -> DocumentSegment|Document:
         if 0 == len(self._stack):
-            return self._document
+            return self.document()
         return self._stack[-1]
 
     def pop(self):
         return self._stack.pop()
 
     def document(self):
-        return self._document
+        return self._documents[-1]
+
+    def documents(self):
+        return self._documents
+
+    def root_document(self):
+        return self._root_document
 
     def processCatalog(self, catalog: Catalog):
         assert isinstance(catalog, Catalog)
-        self._document.set_title("Codeplug documentation")
-        #self._document.add(TableOfContents(self._document))
+        self._root_document.set_title("Codeplug documentation")
+        p = Paragraph(); self.back().add(p)
+        p.add("All documented models:")
+        table = Table(3); self.back().add(table)
+        table.set_header("Manufacturer", "Model", "Description")
+
         for model in catalog:
-            self.processModel(model)
+            model_sec = self.processModel(model)
+            ref = Reference(model_sec, model.get_name())
+            manufacturer = model.get_manufacturer()
+            description = ""
+            if model.has_description():
+                description = model.get_description()
+            table.add_row(manufacturer, ref , description)
 
     def processModel(self, model: Model):
         assert isinstance(model, Model)
-        self.push(Section("Code-plugs of {}".format(model.get_name()),
-                          pagebreak=Section.Odd))
+        if not self._single_document:
+            doc = Document()
+            doc.set_id(model.get_id())
+            doc.set_title("Code-plugs of {}".format(model.get_name()))
+            self.push(doc)
+        else:
+            self.push(Section("Code-plugs of {}".format(model.get_name()),
+                              pagebreak=Section.Odd))
         if model.has_description():
             para = Paragraph()
             para.add(model.get_description())
+            self.back().add(para)
 
         table = Table(3)
         self.back().add(table)
@@ -48,11 +79,16 @@ class DocumentGenerator:
 
         for firmware in model:
             if firmware.is_valid():
+                if not self._single_document:
+                    doc = Document();
+                    doc.set_id(f"{self.document().get_id()}_{firmware.get_name()}")
+                    doc.set_subtitle(f"Version {firmware.get_name()}")
+                    self.push(doc)
                 cp_sec = self.processCodeplug(firmware.get_codeplug())
                 table.add_row(Reference(cp_sec, firmware.get_name()),
                               str(firmware.get_released()) if firmware.has_released() else "Unknown")
 
-        self.pop()
+        return self.pop()
 
     def processPattern(self, pattern: AbstractPattern) -> Section | Paragraph:
         if isinstance(pattern, Codeplug):
@@ -116,7 +152,10 @@ class DocumentGenerator:
         return Symbol(None)
 
     def processCodeplug(self, cp: Codeplug) -> Section:
-        self.push(Section("Codeplug {}".format(cp.meta().get_name())))
+        if self._single_document:
+            self.push(Section("Codeplug {}".format(cp.meta().get_name())))
+        else:
+            self.document().set_title("Codeplug {}".format(cp.meta().get_name()))
         self.processMeta(cp.meta())
         table = Table(3)
         self.back().add(table)

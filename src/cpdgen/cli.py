@@ -18,8 +18,8 @@ def main_cli():
         description="Generates a complete documentation from codeplug definition files."
     )
     parser.add_argument("-f", "--format", default="html", choices=["html", "typst"])
+    parser.add_argument("-M", "--multi-document", action="store_true")
     parser.add_argument("catalog")
-    parser.add_argument("output", nargs="?")
     args = parser.parse_args()
 
     abs_path = os.path.abspath(args.catalog)
@@ -32,35 +32,27 @@ def main_cli():
     xmlParser.parse(open(abs_path, "r"))
     cat = catalog_handler.pop()
 
-    docgen = DocumentGenerator()
+    docgen = DocumentGenerator(single_document=not args.multi_document)
     docgen.processCatalog(cat)
-    document = docgen.document()
+    documents = docgen.documents()
 
-    Indexer.process(document)
-    document.update()
+    Indexer.process_documents(documents)
+    for document in documents:
+        document.update()
 
+    generator = None
     if "html" == args.format:
-        htmlgen = HTMLGenerator()
-        htmlgen.process_document(document)
-        htmldoc = htmlgen.get_document()
-
-        file = sys.stdout
-        encoding = "unicode"
-        if "output" in args and args.output is not None:
-            file = open(args.output, "wb")
-            encoding = "UTF-8"
-
-        htmldoc.write(file, encoding=encoding, method="html")
+        generator = HTMLGenerator()
+    elif "typst" == args.format:
+        generator = TypstGenerator()
+    assert generator is not None
+    for document in documents:
+        generator.process_document(document)
+    for filename, content in generator:
+        file = open(filename, "wb")
+        file.write(content.encode())
         file.flush()
         file.close()
-    elif "typst" == args.format:
-        typgen = TypstGenerator()
-        typgen.process_document(document)
-        for filename, content in typgen:
-            file = open(filename, "wb")
-            file.write(content.getvalue().encode())
-            file.flush()
-            file.close()
 
 
 if "__main__" == __name__:
