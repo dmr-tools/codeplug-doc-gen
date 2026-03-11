@@ -6,12 +6,10 @@ from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpa
 
 class TypstGenerator:
     def __init__(self):
-        self._content = io.StringIO();
         self._files = dict()
-        self._files["reference.typ"] = self._content
 
     def __iter__(self):
-        return iter(self._files.items())
+        return iter(map(lambda i: (i[0],i[1].getvalue()), self._files.items()))
 
     def process(self, el):
         if isinstance(el, Document):
@@ -30,6 +28,9 @@ class TypstGenerator:
             raise TypeError("Unknown document section type '{}'".format(type(el)))
 
     def process_document(self, doc: Document):
+        self._content = io.StringIO()
+        self._files[f"{doc.get_id()}.typ"] = self._content
+
         self._content.write('#set heading(numbering: "1.")\n')
         self._content.write('#set par(justify: true, leading: 0.4em)\n')
         self._content.write('#set text(font: "IBM Plex Sans", size: 11pt)\n')

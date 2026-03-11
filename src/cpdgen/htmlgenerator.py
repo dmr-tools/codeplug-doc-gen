@@ -6,6 +6,9 @@ from cpdgen.document import Document, Section, Paragraph, Table, Figure, TextSpa
 
 class HTMLGenerator:
     def __init__(self):
+        self._files = dict()
+
+    def init_document(self, doc: Document):
         self._builder = ElementTree.TreeBuilder()
         self._html = self._builder.start("html", {"lang": "en"})
         self._head = self._builder.start("head", {})
@@ -20,14 +23,13 @@ class HTMLGenerator:
         self._body = self._builder.start("body", {"class": "container"})
         self._header = self._builder.start("header", {"class": "row"})
         self._builder.end("header")
-        self._builder.start("h1", {}); self._builder.data("Devices"); self._builder.end("h1")
         self._nav = self._builder.start("nav", {"class": "navbar navbar-expand-lg"})
         self._builder.end("nav")
         self._main = self._builder.start("main", {"class": "row"})
         self._current = None
 
-    def get_document(self) -> ElementTree.ElementTree:
-        return ElementTree.ElementTree(self._html)
+    def __iter__(self):
+        return iter(self._files.items())
 
     def text(self, txt):
         self._builder.data(txt)
@@ -61,6 +63,7 @@ class HTMLGenerator:
             raise TypeError("Unknown document section type '{}'".format(type(el)))
 
     def process_document(self, doc: Document):
+        self.init_document(doc)
         if doc.has_title():
             te = ElementTree.SubElement(self._head, "title")
             te.text = doc.get_title()
@@ -69,18 +72,13 @@ class HTMLGenerator:
             h1.text = doc.get_title()
             if doc.has_subtitle():
                 sub = ElementTree.SubElement(h1, "small")
-                sub.text = doc.get_subtitle()
-            sub = ElementTree.SubElement(ph, "p", {})
-            sub.text = "Generated documentation of all codeplugs."
-        navlist = ElementTree.SubElement(self._nav, "ul", {"class": "nav nav-pills flex-column"})
+                sub.text = " " + doc.get_subtitle()
+        self._document = doc
         self._current = self._main
         for el in doc:
-            if isinstance(el, Section):
-                li = ElementTree.SubElement(navlist, "li", {"class": "nav-item"})
-                a = ElementTree.SubElement(li, "a", {"href": "#"+el.get_segment_id(), "class": "nav-link"})
-                for span in el.get_title():
-                    a.text = a.text + span.get_content() if a.text else span.get_content()
             self.process(el)
+        self._files[f"{doc.get_id()}.html"] = ElementTree.tostring(self._html, encoding="unicode",
+                                                                   method="html")
 
     def process_section(self, sec: Section):
         level: int = sec.get_level()
@@ -167,7 +165,13 @@ class HTMLGenerator:
             self.text(span.get_content())
 
     def process_reference(self, ref: Reference):
-        self.push("a", attrs={"href": "#" + ref.get_segment().get_segment_id()})
+        if isinstance(ref.get_segment(), Document):
+            href = f"{ref.get_segment().get_id()}.html"
+        elif self._document == ref.get_segment().get_document():
+            href = f"#{ref.get_segment().get_segment_id()}"
+        else:
+            href = f"{ref.get_segment().get_document().get_id()}.html#{ref.get_segment().get_segment_id()}"
+        self.push("a", attrs={"href": href})
         self.text(ref.get_content())
         self.pop()
 

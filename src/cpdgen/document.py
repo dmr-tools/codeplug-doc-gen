@@ -322,6 +322,7 @@ class Document:
         self._title = None
         self._sub_title = None
         self._published = published
+        self._id = None
         self._content: [DocumentSegment] = []
 
     def __len__(self):
@@ -332,6 +333,15 @@ class Document:
 
     def __iter__(self):
         return iter(self._content)
+
+    def has_id(self) -> bool:
+        return self._id is not None
+
+    def get_id(self) -> str:
+        return self._id
+
+    def set_id(self, id: str):
+        self._id = id
 
     def has_title(self) -> bool:
         return bool(self._title)

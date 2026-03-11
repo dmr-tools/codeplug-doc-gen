@@ -39,7 +39,8 @@ class Firmware:
 
 
 class Model:
-    def __init__(self, name=None, description=None):
+    def __init__(self, id=None, name=None, description=None):
+        self._id = id
         self._name = name
         self._description = description
         self._manufacturer = None
@@ -58,6 +59,9 @@ class Model:
 
     def is_valid(self) -> bool:
         return bool(self._name)
+
+    def get_id(self):
+        return self._id
 
     def get_name(self) -> str:
         return self._name

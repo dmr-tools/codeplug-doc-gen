@@ -3,6 +3,11 @@ from cpdgen.document import Document, Section, Paragraph, Table, Figure
 
 class Indexer:
     @staticmethod
+    def process_documents(documents: list[Document]):
+        for document in documents:
+            Indexer.process(document)
+
+    @staticmethod
     def process(obj, counts={'sections': [0], 'paragraphs': [0], 'tables': [0], 'figures': [0]}):
         if isinstance(obj, Document):
             for section in obj:
