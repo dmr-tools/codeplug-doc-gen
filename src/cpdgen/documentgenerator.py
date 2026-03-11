@@ -1,5 +1,3 @@
-from tomlkit import document
-
 from cpdgen.document import Document, DocumentSegment, Section, Paragraph, Table, Figure, TableOfContents, Reference, \
     TextSpan, Symbol, Version
 from cpdgen.pattern import AbstractPattern, Codeplug, SparseRepeat, BlockRepeat, FixedRepeat, ElementPattern, \
