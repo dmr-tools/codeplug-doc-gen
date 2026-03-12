@@ -31,7 +31,10 @@ class DocumentGenerator:
         return self._stack.pop()
 
     def document(self):
-        return self._documents[-1]
+        for el in reversed(self._stack):
+            if isinstance(el, Document):
+                return el
+        return None
 
     def documents(self):
         return self._documents
@@ -78,13 +81,15 @@ class DocumentGenerator:
         for firmware in model:
             if firmware.is_valid():
                 if not self._single_document:
-                    doc = Document();
-                    doc.set_id(f"{self.document().get_id()}_{firmware.get_name()}")
+                    doc = Document()
+                    doc.set_id(f"{model.get_id()}_{firmware.get_name()}")
                     doc.set_subtitle(f"Version {firmware.get_name()}")
                     self.push(doc)
                 cp_sec = self.processCodeplug(firmware.get_codeplug())
                 table.add_row(Reference(cp_sec, firmware.get_name()),
                               str(firmware.get_released()) if firmware.has_released() else "Unknown")
+                if not self._single_document:
+                    self.pop()
 
         return self.pop()
 
@@ -163,7 +168,9 @@ class DocumentGenerator:
             if isinstance(el_sec, Section): el_sec.set_pagebreak(Section.Any)
             table.add_row(str(el.get_address()), Reference(el_sec, el.meta().get_name()),
                           self.formatBrief(el.meta()))
-        return self.pop()
+        if self._single_document:
+            return self.pop()
+        return self.back()
 
     def processRepeat(self, repeat: SparseRepeat|BlockRepeat|FixedRepeat) -> Section:
         self.push(Section(repeat.meta().get_name()))
