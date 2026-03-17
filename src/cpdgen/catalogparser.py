@@ -10,10 +10,19 @@ from urllib.parse import urlsplit
 
 
 class CatalogHandler(ContentHandler):
+    PREFIXES = {"https://static.dm3mat.de/schema/anytone-emu-catalog.dtd": "",
+                "https://static.dm3mat.de/schema/anytone-emu-codeplug.dtd": "",
+                "https://static.dm3mat.de/schema/anytone-emu-catalog-dm32uv.dtd": "DM32UV",
+                "https://static.dm3mat.de/schema/anytone-emu-catalog-anytone.dtd": "Anytone",
+                "http://www.w3.org/2001/XInclude": "XInclude"}
 
     @staticmethod
     def normalizeName(name: str):
         return name.title().replace("-","").replace("_","")
+
+    @staticmethod
+    def prefix(uri):
+        return CatalogHandler.PREFIXES.get(uri, "")
 
     def __init__(self, context: str):
         super().__init__()
@@ -51,12 +60,12 @@ class CatalogHandler(ContentHandler):
 
     def startElementNS(self, name, qname: str, attrs):
         uri, localname = name
-        meth = getattr(self, "start{}Element".format(CatalogHandler.normalizeName(localname)))
+        meth = getattr(self, f"start{CatalogHandler.prefix(uri)}{CatalogHandler.normalizeName(localname)}Element")
         meth(attrs)
 
     def endElementNS(self, name, qname:str):
         uri, localname = name
-        meth = getattr(self, "end{}Element".format(CatalogHandler.normalizeName(localname)))
+        meth = getattr(self, f"end{CatalogHandler.prefix(uri)}{CatalogHandler.normalizeName(localname)}Element")
         meth()
 
     def characters(self, content):
@@ -70,7 +79,7 @@ class CatalogHandler(ContentHandler):
         pass
 
 
-    def startIncludeElement(self, attrs):
+    def startXIncludeIncludeElement(self, attrs):
         if (None, "href") not in attrs:
             error(f"No href given for include statement.")
             return
@@ -92,9 +101,8 @@ class CatalogHandler(ContentHandler):
         finally:
             self._context = old_context
 
-    def endIncludeElement(self):
+    def endXIncludeIncludeElement(self):
         pass
-
 
     def startModelElement(self, attrs):
         self.push(Model(id=attrs[(None, "id")]))
@@ -151,24 +159,88 @@ class CatalogHandler(ContentHandler):
     def endMemoryElement(self):
         pass
 
-    def startIdElement(self, attr):
-        pass
-
-    def endIdElement(self):
-        pass
-
-    def startRevisionElement(self, attrs):
-        pass
-
-    def endRevisionElement(self):
-        pass
-
     def startMapElement(self, attrs):
         pass
 
     def endMapElement(self):
         pass
 
+    def startAnytoneIdElement(self, attr):
+        pass
+
+    def endAnytoneIdElement(self):
+        pass
+
+    def startAnytoneRevisionElement(self, attrs):
+        pass
+
+    def endAnytoneRevisionElement(self):
+        pass
+
+    def startDM32UVFirmwareVersionElement(self, attrs):
+        pass
+    def endDM32UVFirmwareVersionElement(self):
+        pass
+
+    def startDM32UVBuildDateElement(self, attrs):
+        pass
+    def endDM32UVBuildDateElement(self):
+        pass
+
+    def startDM32UVDSPVersionElement(self, attrs):
+        pass
+    def endDM32UVDSPVersionElement(self):
+        pass
+
+    def startDM32UVRadioVersionElement(self, attrs):
+        pass
+    def endDM32UVRadioVersionElement(self):
+        pass
+
+    def startDM32UVCodeplugVersionElement(self, attrs):
+        pass
+    def endDM32UVCodeplugVersionElement(self):
+        pass
+
+    def startDM32UVMainConfigElement(self, attrs):
+        pass
+    def endDM32UVMainConfigElement(self):
+        pass
+
+    def startDM32UVCompactItemTableElement(self, attrs):
+        pass
+    def endDM32UVCompactItemTableElement(self):
+        pass
+
+    def startDM32UVListsElement(self, attrs):
+        pass
+    def endDM32UVListsElement(self):
+        pass
+
+    def startDM32UVZonesElement(self, attrs):
+        pass
+    def endDM32UVZonesElement(self):
+        pass
+
+    def startDM32UVEmergencyElement(self, attrs):
+        pass
+    def endDM32UVEmergencyElement(self):
+        pass
+
+    def startDM32UVContactsElement(self, attrs):
+        pass
+    def endDM32UVContactsElement(self):
+        pass
+
+    def startDM32UVAudioResourceElement(self, attrs):
+        pass
+    def endDM32UVAudioResourceElement(self):
+        pass
+
+    def startDM32UVContactCountElement(self, attrs):
+        pass
+    def endDM32UVContactCountElement(self):
+        pass
 
 
 class IncludeHandler(ContentHandler):
