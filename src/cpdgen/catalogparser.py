@@ -165,6 +165,12 @@ class CatalogHandler(ContentHandler):
     def endMapElement(self):
         pass
 
+    def startAnytoneBandElement(self, attr):
+        pass
+
+    def endAnytoneBandElement(self):
+        pass
+
     def startAnytoneIdElement(self, attr):
         pass
 
