@@ -364,7 +364,7 @@ class Document:
     def get_published(self) -> date:
         return self._published
 
-    def add(self, section: Section):
+    def add(self, section: DocumentSegment):
         section.set_parent(self)
         self._content.append(section)
 

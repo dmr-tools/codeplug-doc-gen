@@ -25,11 +25,20 @@ class Address:
         byte, bit = bits//8, 7 - bits % 8
         return Address(byte, bit)
 
+    def __lt__(self, other):
+        return self._bits < other.bits()
+
     def __le__(self, other):
         return self._bits <= other.bits()
 
     def __eq__(self, other):
         return self._bits == other.bits()
+
+    def __ge__(self, other):
+        return self._bits >= other.bits()
+
+    def __gt__(self, other):
+        return self._bits > other.bits()
 
     @staticmethod
     def parse(string):
@@ -226,6 +235,8 @@ class SparseRepeat(AbstractPattern, StructuredPatternInterface):
     def get_max(self) -> int:
         return self._max
 
+    def get_offset(self):
+        return self._offset
 
 
 class BlockRepeat(DensePattern, StructuredPatternInterface):
@@ -377,7 +388,7 @@ class EnumPattern(FieldPattern):
     def __len__(self):
         return len(self._items)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> EnumValue:
         return self._items[item]
 
     def __iter__(self):
@@ -490,7 +501,7 @@ class Codeplug(StructuredPatternInterface):
     def __len__(self):
         return len(self._elements)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> AbstractPattern:
         return self._elements[item]
 
     def __iter__(self):

@@ -46,13 +46,19 @@ class Model:
         self._manufacturer = None
         self._url = None
         self._versions = []
+        self._table = {}
         self._latest = None
 
     def __len__(self):
         return len(self._versions)
 
+    def __contains__(self, item):
+        return item in self._table#
+
     def __getitem__(self, item):
-        return self._versions[item]
+        if isinstance(item, int):
+            return self._versions[item]
+        return self._table[item]
 
     def __iter__(self):
         return iter(self._versions)
@@ -95,17 +101,24 @@ class Model:
             self._latest = firmware
         self._versions.append(firmware)
         self._versions.sort()
+        self._table[firmware.get_name()] = firmware
 
 
 class Catalog:
     def __init__(self):
         self._models = []
+        self._table = {}
 
     def __len__(self):
         return len(self._models)
 
+    def __contains__(self, key):
+        return key in self._table
+
     def __getitem__(self, item):
-        return self._models[item]
+        if isinstance(item, int):
+            return self._models[item]
+        return self._table[item]
 
     def __iter__(self):
         return iter(self._models)
@@ -115,4 +128,5 @@ class Catalog:
 
     def add(self, model: Model):
         self._models.append(model)
+        self._table[model.get_id()] = model
 
