@@ -164,7 +164,6 @@ class Paragraph(DocumentSegment):
         return self
 
 
-
 class Table(DocumentSegment):
     def __init__(self, num_cols, title=None, parent=None):
         super().__init__(title, parent)
@@ -231,7 +230,7 @@ class TextSpan:
         return self._content
 
     def has_content(self) -> bool:
-        return len(self._content)
+        return 0 != len(self._content)
 
     def get_content(self) -> str:
         return self._content
@@ -319,8 +318,8 @@ class TableOfContents(DocumentSegment):
 
 class Document:
     def __init__(self, title=None, sub_title=None, published: date = date.today()):
-        self._title = None
-        self._sub_title = None
+        self._title = title
+        self._sub_title = sub_title
         self._published = published
         self._id = None
         self._content: [DocumentSegment] = []

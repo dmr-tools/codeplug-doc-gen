@@ -1,6 +1,6 @@
 from typing import Union
 
-from cpdgen.document import Document, DocumentSegment, Paragraph, Section
+from cpdgen.document import Document, DocumentSegment, Paragraph, Section, Table, Version
 from cpdgen.pattern import *
 
 
@@ -29,7 +29,13 @@ class DifferenceGenerator:
 
     def process(self, orig:Codeplug, dest:Codeplug):
         assert isinstance(orig, Codeplug) and isinstance(dest, Codeplug)
-        self._documents = [Document()]
+        title = f"Comparison of {orig.meta().get_name()}"
+        if orig.meta().get_name() != dest.meta().get_name():
+            title += f" and {dest.meta().get_name()}"
+        sub_title = f"Version {orig.meta().get_version()}"
+        if orig.meta().get_version() != dest.meta().get_version():
+            sub_title = f"Versions {orig.meta().get_version()} vs. {dest.meta().get_version()}"
+        self._documents = [Document(title=title, sub_title=sub_title)]
         self._stack = [self._documents[-1]]
         self._compare_children(orig, dest)
 
@@ -60,37 +66,25 @@ class DifferenceGenerator:
         return difference
 
     def _delete(self, left:AbstractPattern):
-        if isinstance(left, FieldPattern):
-            p = Paragraph(title=f"Remove {left.meta().get_name()}")
-            self.back().add(p)
-        else:
-            sec = Section(title=f"Remove {left.meta().get_name()}")
-            self.back().add(sec)
-            p = Paragraph(); sec.add(p)
+        sec = Section(title=f"Remove {left.meta().get_name()}")
+        self.back().add(sec)
+        p = Paragraph(); sec.add(p)
         if left.has_address():
             p.add(f"Remove element at address {left.get_address()}.")
         return True
 
     def _insert(self, right:AbstractPattern):
-        if isinstance(right, FieldPattern):
-            p = Paragraph(title=f"Insert {right.meta().get_name()}")
-            self.back().add(p)
-        else:
-            sec = Section(title=f"Insert {right.meta().get_name()}")
-            self.back().add(sec)
-            p = Paragraph(); sec.add(p)
+        sec = Section(title=f"Insert {right.meta().get_name()}")
+        self.back().add(sec)
+        p = Paragraph(); sec.add(p)
         if right.has_address():
             p.add(f"Insert element at address {right.get_address()}.")
         return True
 
     def _replace(self, left:AbstractPattern, right:AbstractPattern):
-        if isinstance(right, FieldPattern):
-            p = Paragraph(title=f"Replace {left.meta().get_name()} with {right.meta().get_name()}")
-            self.back().add(p)
-        else:
-            sec = Section(title=f"Replace {left.meta().get_name()} with {right.meta().get_name()}")
-            self.back().add(sec)
-            p = Paragraph(); sec.add(p)
+        sec = Section(title=f"Replace {left.meta().get_name()} with {right.meta().get_name()}")
+        self.back().add(sec)
+        p = Paragraph(); sec.add(p)
         if isinstance(left, FixedPattern) and isinstance(right, FixedPattern) and left.get_size() != right.get_size():
             p.add(f"Replace element at address {left.get_address()} "
                   f"of size {left.get_size()} with one of size {right.get_size()}.");
@@ -128,15 +122,62 @@ class DifferenceGenerator:
             difference |= self._compare_unknown(left, right)
         return difference
 
+    def _compare_common(self, left: AbstractPattern, right: AbstractPattern):
+        p = Paragraph(); self.back().add(p)
+        if left.has_address(): p.add(f"In {type(left).__name__} at address {left.get_address()}. ")
+        else: p.add(f"In {type(left).__name__}.")
+        difference = False
+        if left.meta().get_version() != right.meta().get_version():
+            self.back().set_subtitle(Version(f"{left.meta().get_version()}->{right.meta().get_version()}"))
+        if left.meta().get_name() != right.meta().get_name():
+            p.add(f"Rename '{left.meta().get_name()}' to '{right.meta().get_name()}'.")
+            difference |= True
+        if left.meta().has_brief() and not right.meta().has_brief():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Removed brief description: {left.meta().get_brief()}")
+            difference |= True
+        elif not left.meta().has_brief() and right.meta().has_brief():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Added brief description: {right.meta().get_brief()}")
+            difference |= True
+        elif left.meta().has_brief() and left.meta().get_brief() != right.meta().get_brief():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Repaced brief description: {left.meta().get_brief()}")
+            tmp = Paragraph(); self.back().add(tmp);
+            tmp.add(f"With: {right.meta().get_brief()}")
+            difference |= True
+        if left.meta().has_description() and not right.meta().has_description():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Removed description: {left.meta().get_description()}")
+            difference |= True
+        elif not left.meta().has_description() and right.meta().has_description():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Added description: {right.meta().get_description()}")
+            difference |= True
+        elif left.meta().has_description() and left.meta().get_description() != right.meta().get_description():
+            tmp = Paragraph(); self.back().add(tmp)
+            tmp.add(f"Replaced description: {left.meta().get_description()}")
+            tmp = Paragraph(); self.back().add(tmp);
+            tmp.add(f"With: {right.meta().get_description()}")
+            difference |= True
+        if isinstance(left, FixedPattern) and left.get_size() != right.get_size():
+            p.add(f"Resized from {left.get_size()} to {right.get_size()}.")
+        return difference
+
+    def _check_version(self, left:AbstractPattern, right:AbstractPattern, difference:bool):
+        if not left.meta().has_version() or not right.meta().has_version():
+            return difference
+        # there is a difference, ensure the version differs
+        if left.meta().get_version() == right.meta().get_version():
+            p = Paragraph()
+            p.add(f"Differences are not reflected in version number!")
+            self.back().add(p)
+        return difference
+
     def _compare_sparse_repeat(self, left:SparseRepeat, right:SparseRepeat):
         sec = Section(title=f"In sparse repeat {left.meta().get_name()}")
         self.push(sec)
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p = Paragraph()
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            sec.add(p)
-            difference = True
+        difference = self._compare_common(left, right)
         if left.get_min() != right.get_min():
             p = Paragraph()
             p.add(f"Replace min {left.get_min()} with {right.get_min()}.")
@@ -152,20 +193,17 @@ class DifferenceGenerator:
             p.add(f"Replace offset {left.get_offset()} with {right.get_offset()}.")
             sec.add(p)
             difference = True
+        difference |= self._check_version(left, right, difference)
         difference |= self._compare(left.get_child(), right.get_child())
         self.pop()
-        if difference: self.back().add(sec)
+        if difference:
+            self.back().add(sec)
         return difference
 
     def _compare_block_repeat(self, left:BlockRepeat, right:BlockRepeat):
         sec = Section(title=f"In block repeat {left.meta().get_name()}")
         self.push(sec)
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p = Paragraph()
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            sec.add(p)
-            difference = True
+        difference = self._compare_common(left, right)
         if left.get_min() != right.get_min():
             p = Paragraph()
             p.add(f"Replace min {left.get_min()} with {right.get_min()}.")
@@ -176,6 +214,7 @@ class DifferenceGenerator:
             p.add(f"Replace max {left.get_max()} with {right.get_max()}.")
             sec.add(p)
             difference = True
+        difference |= self._check_version(left, right, difference)
         difference |= self._compare(left.get_child(), right.get_child())
         self.pop()
         if difference: self.back().add(sec)
@@ -184,31 +223,24 @@ class DifferenceGenerator:
     def _compare_fixed_repeat(self, left:FixedRepeat, right:FixedRepeat):
         sec = Section(title=f"In fixed repeat {left.meta().get_name()}")
         self.push(sec)
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p = Paragraph()
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            sec.add(p)
-            difference = True
+        difference = self._compare_common(left, right)
         if left.get_size() != right.get_size():
             p = Paragraph()
             p.add(f"Replace size {left.get_size()} with {right.get_size()}.")
             sec.add(p)
             difference = True
+        difference |= self._check_version(left, right, difference)
         difference |= self._compare(left.get_child(), right.get_child())
         self.pop()
-        if difference: self.back().add(sec)
+        if difference:
+            self.back().add(sec)
         return difference
 
     def _compare_union(self, left:Union, right:Union):
         sec = Section(title=f"In union {left.meta().get_name()}")
         self.push(sec)
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p = Paragraph()
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            sec.add(p)
-            difference = True
+        difference = self._compare_common(left, right)
+        difference |= self._check_version(left, right, difference)
         i, j = 0,0
         while i < len(left) or j < len(right):
             if i == len(left):
@@ -222,68 +254,74 @@ class DifferenceGenerator:
             difference |= self._compare(left[i], right[j])
             i += 1; j+=1
         self.pop()
-        if difference: self.back().add(sec)
+        if difference:
+            self.back().add(sec)
         return difference
 
     def _compare_element(self, left:ElementPattern, right:ElementPattern):
         sec = Section(title=f"In element {left.meta().get_name()}")
         self.push(sec)
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p = Paragraph()
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            sec.add(p)
-            difference = True
+        difference = self._compare_common(left, right)
+        difference |= self._check_version(left, right, difference)
         difference |= self._compare_children(left, right)
         self.pop()
-        if difference: self.back().add(sec)
+        if difference:
+            self.back().add(sec)
         return difference
 
     def _compare_enum(self, left:EnumPattern, right:EnumPattern):
-        p = Paragraph(f"In enum {left.meta().get_name()}")
-        p.add(f"At address {left.get_address()}")
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            difference = True
+        sec = Section(f"In enum {left.meta().get_name()}")
+        self.push(sec)
+        difference = self._compare_common(left, right)
+        p = Paragraph(); self.back().add(p)
         if left.get_size() != right.get_size():
-            p.add(f"Change size from {left.get_size()} to {right.get_size()}.")
+            p.add(f"Change size from {left.get_size()} to {right.get_size()}. ")
             difference |= True
         if left.has_default_value() and not right.has_default_value():
-            p.add(f"Remove default value {left.get_default_value()}.")
+            p.add(f"Remove default value {left.get_default_value()}. ")
         elif right.has_default_value() and not left.has_default_value():
-            p.add(f"Add default value {right.get_default_value()}.")
+            p.add(f"Add default value {right.get_default_value()}. ")
         elif left.has_default_value() and left.get_default_value() != right.get_default_value():
-            p.add(f"Replace default {left.get_default_value()} with {right.get_default_value()}.")
+            p.add(f"Replace default {left.get_default_value()} with {right.get_default_value()}. ")
             difference |= True
+        tab = Table(3)
+        tab.set_header("", "Value", "Name")
         i,j = 0,0
         while i < len(left) or j < len(right):
             if i == len(left):
-                p.add(f"Add item {right[j].get_name()} with value {right[j].value}.")
+                tab.add_row("add", str(right[j].value), right[j].get_name())
                 difference |= True
                 j += 1
                 continue
             if j == len(right):
-                p.add(f"Remove item {left[i].get_name()} with value {left[i].value}.")
+                tab.add_row("remove", str(left[i].value), left[i].get_name())
                 difference |= True
                 i += 1
                 continue
-            if left[i].value != right[j].value:
-                p.add(f"Replace item {left[i].get_name()} (value {left[i].value}) with {right[j].get_name()} (value {right[j].value}).")
+            if left[i].value < right[j].value:
+                tab.add_row("remove", str(left[i].value), left[i].get_name())
+                difference |= True
+                i += 1
+                continue
+            if left[i].value > right[j].value:
+                tab.add_row("add", str(right[j].value), right[j].get_name())
+                difference |= True
+                j += 1
+                continue
             i += 1; j+=1
-        if difference: self.back().add(p)
+        difference |= self._check_version(left, right, difference)
+        self.pop()
+        if difference:
+            if 0 != len(tab):
+                sec.add(tab)
+            self.back().add(sec)
         return difference
 
     def _compare_integer(self, left:IntegerPattern, right:IntegerPattern):
-        p = Paragraph(f"In integer {left.meta().get_name()}")
-        p.add(f"At address {left.get_address()}")
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            difference = True
-        if left.get_size() != right.get_size():
-            p.add(f"Change size from {left.get_size()} to {right.get_size()}.")
-            difference |= True
+        sec = Section(f"In integer {left.meta().get_name()}")
+        self.push(sec)
+        difference = self._compare_common(left, right)
+        p = Paragraph(); sec.add(p)
         if left.has_default_value() and not right.has_default_value():
             p.add(f"Remove default value {left.get_default_value()}.")
         elif right.has_default_value() and not left.has_default_value():
@@ -297,29 +335,29 @@ class DifferenceGenerator:
         elif right.has_range() and not left.has_range():
             p.add(f"Add range {right.get_range()}.")
             difference |= True
-        if difference: self.back().add(p)
+        elif left.has_range() and left.get_range() != right.get_range():
+            p.add(f"Replace range {left.get_range()} with {right.get_range()}.")
+            difference |= True
+        difference |= self._check_version(left, right, difference)
+        self.pop()
+        if difference:
+            self.back().add(sec)
         return difference
 
     def _compare_string(self, left:StringPattern, right:StringPattern):
-        p = Paragraph(f"In string {left.meta().get_name()}")
-        p.add(f"At address {left.get_address}")
-        difference = False
-        if left.meta().get_name() != right.meta().get_name():
-            p.add(f"Replace name {left.meta().get_name()} with {right.meta().get_name()}.")
-            difference = True
-        if left.get_size() != right.get_size():
-            p.add(f"Change size from {left.get_size()} to {right.get_size()}.")
-            difference |= True
-        if difference: self.back().add(p)
+        sec = Section(f"In string {left.meta().get_name()}"); self.push(sec)
+        difference = self._compare_common(left, right)
+        difference |= self._check_version(left, right, difference)
+        self.pop()
+        if difference:
+            self.back().add(sec)
         return difference
 
-
     def _compare_unknown(self, left:UnknownDataPattern|UnusedDataPattern, right:UnknownDataPattern|UnusedDataPattern):
-        p = Paragraph(f"In unknown/unused data {left.meta().get_name()}")
-        p.add(f"At address {left.get_address()}")
-        difference = False
-        if left.get_size() != right.get_size():
-            p.add(f"Change size from {left.get_size()} to {right.get_size()}.")
-            difference |= True
-        if difference: self.back().add(p)
+        sec = Section(f"In unknown/unused data {left.meta().get_name()}"); self.push(sec)
+        difference = self._compare_common(left, right)
+        difference |= self._check_version(left, right, difference)
+        self.pop()
+        if difference:
+            self.back().add(sec)
         return difference
