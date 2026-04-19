@@ -131,9 +131,9 @@ class HTMLGenerator:
         self.pop()
 
     def process_figure(self, fig: Figure):
-        self.push("img", attrs={"id": fig.get_segment_id()})
-        self.back().append(fig.get_svg())
-        self.pop()
+        img = fig.get_svg()
+        img.attrib.update({"class": ".img-fluid", "max-width": "100%", "id": fig.get_segment_id()})
+        self.back().append(img)
 
     def process_toc(self, toc: TableOfContents):
         self.push("h1")
